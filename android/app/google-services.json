@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "162131240526",
+    "project_id": "skillscanner-5622c",
+    "storage_bucket": "skillscanner-5622c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:162131240526:android:d4df658669f330cdd5051f",
+        "android_client_info": {
+          "package_name": "com.example.my_flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9_2selrilY01TrvqcHzfloF_CPnZJryM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:162131240526:android:5cf96a58965ba028d5051f",
+        "android_client_info": {
+          "package_name": "com.sara.skill_scanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9_2selrilY01TrvqcHzfloF_CPnZJryM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
