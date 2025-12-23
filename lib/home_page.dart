@@ -87,6 +87,7 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.red,
                         ),
                         onPressed: () => _removeSkill(index),
+                        // GPG test ۳
                       ),
                     ),
                   );
