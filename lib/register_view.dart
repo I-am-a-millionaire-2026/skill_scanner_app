@@ -19,8 +19,15 @@ class _RegisterViewState extends State<RegisterView> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: email, decoration: const InputDecoration(labelText: 'ایمیل')),
-            TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'رمز عبور')),
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: 'ایمیل'),
+            ),
+            TextField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'رمز عبور'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 try {
@@ -28,10 +35,13 @@ class _RegisterViewState extends State<RegisterView> {
                     email: email.text.trim(),
                     password: password.text.trim(),
                   );
-                  await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+                  await FirebaseAuth.instance.currentUser
+                      ?.sendEmailVerification();
                   Navigator.of(context).pop();
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
                 }
               },
               child: const Text('تایید و ارسال ایمیل فعال‌سازی'),
