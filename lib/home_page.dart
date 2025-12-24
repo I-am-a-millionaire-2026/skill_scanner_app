@@ -1,58 +1,40 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  final List<String> skills = [];
-  final TextEditingController _controller = TextEditingController();
-
-  void _addSkill() {
-    if (_controller.text.isNotEmpty) {
-      setState(() {
-        skills.add(_controller.text);
-        _controller.clear();
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Skill Scanner')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(hintText: 'Enter Skill'),
-                  ),
-                ),
-                IconButton(icon: const Icon(Icons.add), onPressed: _addSkill),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: skills.length,
-              itemBuilder: (context, index) => ListTile(
-                title: Text(skills[index]),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => setState(() => skills.removeAt(index)),
-                ),
-              ),
-            ),
+      appBar: AppBar(
+        title: const Text('Skill Scanner'),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: () {
+              debugPrint('CTA clicked');
+            },
+            child: const Text('Login', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Welcome to Skill Scanner',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                debugPrint('Get Started clicked');
+              },
+              child: const Text('Get Started'),
+            ),
+          ],
+        ),
       ),
     );
   }
