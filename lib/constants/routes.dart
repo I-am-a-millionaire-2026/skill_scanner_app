@@ -1,3 +1,4 @@
-const String loginRoute = '/login/';
-const String registerRoute = '/register/';
-const String notesRoute = '/notes/';
+const loginRoute = '/login/';
+const registerRoute = '/register/';
+const notesRoute = '/notes/';
+const verifyEmailRoute = '/verify-email/';

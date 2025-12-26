@@ -8,10 +8,11 @@ class NotesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Skill Scanner'),
+        title: const Text('My Skills Dashboard'),
+        backgroundColor: const Color(0xFF1E1E1E),
         actions: [
-          // دکمه خروج که کار نمی‌کرد
           IconButton(
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
@@ -25,33 +26,74 @@ class NotesView extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundImage: NetworkImage(
-                'https://via.placeholder.com/150',
-              ), // جایگزین عکس خودت
+            const Text(
+              'Your Progress',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Sara Kasraie',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            _buildSkillCard('Flutter Development', 0.8, Colors.blue),
+            _buildSkillCard('Firebase Integration', 0.6, Colors.orange),
+            _buildSkillCard('UI/UX Design', 0.4, Colors.purple),
+            const Spacer(),
+            Center(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 15,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                onPressed: () {},
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                label: const Text(
+                  'Start New Scan',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
             ),
-            const Text(
-              'AI & Tech Specialist',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 40),
-            const Text('Welcome to your notes!'),
+            const SizedBox(height: 20),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
+    );
+  }
+
+  Widget _buildSkillCard(String title, double progress, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.white10,
+            color: color,
+            minHeight: 8,
+          ),
+        ],
       ),
     );
   }

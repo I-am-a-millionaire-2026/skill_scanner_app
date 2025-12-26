@@ -15,50 +15,26 @@ class _LoginViewState extends State<LoginView> {
   bool _isLoading = false;
 
   @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  Future<void> _login() async {
-    setState(() => _isLoading = true);
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _email.text.trim(),
-        password: _password.text.trim(),
-      );
-      if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil(notesRoute, (route) => false);
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(25.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 100),
             const Text(
-              'Sign In',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              'Master Me',
+              style: TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+              ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 50),
             TextField(
               controller: _email,
               decoration: InputDecoration(
-                hintText: 'Email or Username',
+                hintText: 'Email',
                 filled: true,
                 fillColor: Colors.white10,
                 border: OutlineInputBorder(
@@ -66,7 +42,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
             TextField(
               controller: _password,
               obscureText: true,
@@ -79,38 +55,54 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () async {
+                  if (_email.text.isNotEmpty) {
+                    await FirebaseAuth.instance.sendPasswordResetEmail(
+                      email: _email.text.trim(),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Reset link sent!')),
+                    );
+                  }
+                },
+                child: const Text('Forgot Password?'),
+              ),
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 55,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
-                onPressed: _isLoading ? null : _login,
+                onPressed: () async {
+                  setState(() => _isLoading = true);
+                  try {
+                    await FirebaseAuth.instance.signInWithEmailAndPassword(
+                      email: _email.text.trim(),
+                      password: _password.text.trim(),
+                    );
+                    if (mounted)
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil(notesRoute, (route) => false);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Login failed')),
+                    );
+                  } finally {
+                    setState(() => _isLoading = false);
+                  }
+                },
                 child: _isLoading
                     ? const CircularProgressIndicator()
                     : const Text('Sign In'),
               ),
             ),
-            const SizedBox(height: 20),
-            // بخش رجیستر که گفته بودی نیست
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Don't have an account? "),
-                TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(registerRoute),
-                  child: const Text(
-                    'Sign Up',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                ),
-              ],
+            TextButton(
+              onPressed: () => Navigator.of(context).pushNamed(registerRoute),
+              child: const Text('Create Account'),
             ),
           ],
         ),
