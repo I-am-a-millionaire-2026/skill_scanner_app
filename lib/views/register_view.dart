@@ -26,36 +26,44 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _register() async {
-    if (_name.text.isEmpty || _email.text.isEmpty || _password.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+    final name = _name.text.trim();
+    final email = _email.text.trim();
+    final password = _password.text;
+    final confirmPassword = _confirmPassword.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
       return;
     }
-    if (_password.text != _confirmPassword.text) {
+
+    if (password != confirmPassword) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
       return;
     }
 
     setState(() => _isLoading = true);
+
     try {
       final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _email.text.trim(),
-            password: _password.text.trim(),
-          );
-      await userCredential.user?.updateDisplayName(_name.text.trim());
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      await userCredential.user?.updateDisplayName(name);
       await userCredential.user?.sendEmailVerification();
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification email sent!')),
+        );
         Navigator.of(context).pushNamed(verifyEmailRoute);
       }
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Registration failed')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -64,62 +72,117 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: Colors.transparent,
-      ),
+      backgroundColor: const Color(0xFF121212),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25.0),
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
           children: [
-            const Icon(Icons.person_add, size: 80, color: Colors.blueAccent),
-            const SizedBox(height: 30),
-            _buildField(_name, 'Full Name', Icons.person),
+            const SizedBox(height: 80),
+            const Icon(
+              Icons.person_add_alt_1_outlined,
+              size: 70,
+              color: Colors.blueAccent,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Create Account',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Join Master Me',
+              style: TextStyle(color: Colors.white54),
+            ),
+            const SizedBox(height: 40),
+            _buildTextField(_name, 'Full Name', Icons.person_outline),
             const SizedBox(height: 15),
-            _buildField(_email, 'Email', Icons.email),
+            _buildTextField(_email, 'Email Address', Icons.email_outlined),
             const SizedBox(height: 15),
-            _buildField(_password, 'Password', Icons.lock, isPass: true),
+            _buildTextField(
+              _password,
+              'Password',
+              Icons.lock_outline,
+              isPassword: true,
+            ),
             const SizedBox(height: 15),
-            _buildField(
+            _buildTextField(
               _confirmPassword,
               'Confirm Password',
-              Icons.lock_clock,
-              isPass: true,
+              Icons.lock_reset_outlined,
+              isPassword: true,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 35),
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 onPressed: _isLoading ? null : _register,
                 child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Sign Up'),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Sign Up',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
               ),
             ),
+            const SizedBox(height: 25),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Already have an account? ",
+                  style: TextStyle(color: Colors.white70),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil(loginRoute, (route) => false);
+                  },
+                  child: const Text(
+                    "Login",
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildField(
-    TextEditingController ctrl,
+  Widget _buildTextField(
+    TextEditingController controller,
     String hint,
     IconData icon, {
-    bool isPass = false,
+    bool isPassword = false,
   }) {
     return TextField(
-      controller: ctrl,
-      obscureText: isPass,
+      controller: controller,
+      obscureText: isPassword,
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.blueAccent),
+        hintStyle: const TextStyle(color: Colors.white38),
         filled: true,
         fillColor: Colors.white10,
+        prefixIcon: Icon(icon, color: Colors.blueAccent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
