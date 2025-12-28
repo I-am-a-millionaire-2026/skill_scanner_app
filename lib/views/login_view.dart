@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_scanner/constants/routes.dart';
+// وارد کردن فایل جدید برای نمایش دیالوگ‌ها
+import 'package:skill_scanner/utilities/show_error_dialog.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -31,7 +33,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // تم تیره هماهنگ با عکست
+      backgroundColor: const Color(0xFF121212),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: SingleChildScrollView(
@@ -48,77 +50,30 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               const SizedBox(height: 40),
-
-              // فیلد ایمیل
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.email, color: Colors.blueAccent),
-                ),
+                decoration: _getInputDecoration('Email', Icons.email),
               ),
               const SizedBox(height: 16),
-
-              // فیلد پسورد
               TextField(
                 controller: _password,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.blueAccent),
-                ),
+                decoration: _getInputDecoration('Password', Icons.lock),
               ),
-
-              // بخش دکمه فراموشی رمز عبور (اصلاح شده)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () async {
-                    final email = _email.text.trim();
-                    if (email.isEmpty) {
-                      _showErrorSnackBar(
-                        'Please enter your email address first.',
-                      );
-                      return;
-                    }
-                    try {
-                      await FirebaseAuth.instance.sendPasswordResetEmail(
-                        email: email,
-                      );
-                      _showSuccessSnackBar(
-                        'Reset link sent! Check your inbox/spam.',
-                      );
-                    } catch (e) {
-                      _handleFirebaseError(e);
-                    }
-                  },
+                  onPressed: _handleForgotPassword,
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(color: Colors.blueAccent),
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // دکمه لاگین
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -138,8 +93,6 @@ class _LoginViewState extends State<LoginView> {
                         ),
                 ),
               ),
-
-              // دکمه ثبت نام
               Center(
                 child: TextButton(
                   onPressed: () {
@@ -160,18 +113,30 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  // متد اصلی لاگین
+  InputDecoration _getInputDecoration(String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white38),
+      filled: true,
+      fillColor: Colors.white.withOpacity(0.1),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+    );
+  }
+
   Future<void> _login() async {
     final email = _email.text.trim();
     final password = _password.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showErrorSnackBar('Please fill in all fields');
+      await showErrorDialog(context, 'Please fill in all fields');
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -182,48 +147,57 @@ class _LoginViewState extends State<LoginView> {
           context,
         ).pushNamedAndRemoveUntil(notesRoute, (route) => false);
       }
+    } on FirebaseAuthException catch (e) {
+      _handleError(e.code, e.message);
     } catch (e) {
-      _handleFirebaseError(e);
+      _handleError('unknown-error', e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // مدیریت هوشمند خطاها
-  void _handleFirebaseError(Object e) {
-    String message = 'An unexpected error occurred.';
-
-    if (e is FirebaseAuthException) {
-      switch (e.code) {
-        case 'user-not-found':
-          message = 'No user found with this email.';
-          break;
-        case 'wrong-password':
-          message = 'Incorrect password.';
-          break;
-        case 'network-request-failed':
-          message =
-              'Network error! Please check your connection or SHA-1 settings.';
-          break;
-        case 'invalid-email':
-          message = 'The email address is badly formatted.';
-          break;
-        default:
-          message = e.message ?? message;
-      }
+  Future<void> _handleForgotPassword() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      await showErrorDialog(context, 'Please enter your email address first.');
+      return;
     }
-    _showErrorSnackBar(message);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        await showSuccessDialog(
+          context,
+          'Password reset link sent to your email.',
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      _handleError(e.code, e.message);
+    } catch (e) {
+      _handleError('unknown-error', e.toString());
+    }
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
-    );
+  void _handleError(String code, String? technicalMessage) {
+    String displayMessage;
+    switch (code) {
+      case 'user-not-found':
+        displayMessage = 'No user found with this email.';
+        break;
+      case 'wrong-password':
+        displayMessage = 'The password you entered is incorrect.';
+        break;
+      case 'invalid-credential':
+        displayMessage = 'Invalid email or password credentials.';
+        break;
+      case 'network-request-failed':
+        displayMessage = 'Please check your internet connection.';
+        break;
+      default:
+        displayMessage =
+            technicalMessage ?? 'An unexpected error occurred ($code).';
+    }
+    if (mounted) {
+      showErrorDialog(context, displayMessage);
+    }
   }
 }
