@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_scanner/constants/routes.dart';
+import 'package:skill_scanner/utilities/show_error_dialog.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -10,63 +11,27 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  final _confirmPassword = TextEditingController();
-  bool _isLoading = false;
+  late final TextEditingController _userName;
+  late final TextEditingController _email;
+  late final TextEditingController _password;
+  late final TextEditingController _confirmPassword;
+
+  @override
+  void initState() {
+    _userName = TextEditingController();
+    _email = TextEditingController();
+    _password = TextEditingController();
+    _confirmPassword = TextEditingController();
+    super.initState();
+  }
 
   @override
   void dispose() {
-    _name.dispose();
+    _userName.dispose();
     _email.dispose();
     _password.dispose();
     _confirmPassword.dispose();
     super.dispose();
-  }
-
-  Future<void> _register() async {
-    final name = _name.text.trim();
-    final email = _email.text.trim();
-    final password = _password.text;
-    final confirmPassword = _confirmPassword.text;
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-
-      await userCredential.user?.updateDisplayName(name);
-      await userCredential.user?.sendEmailVerification();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Verification email sent!')),
-        );
-        Navigator.of(context).pushNamed(verifyEmailRoute);
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Registration failed')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   @override
@@ -74,31 +39,26 @@ class _RegisterViewState extends State<RegisterView> {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        padding: const EdgeInsets.symmetric(horizontal: 30.0),
         child: Column(
           children: [
             const SizedBox(height: 80),
             const Icon(
-              Icons.person_add_alt_1_outlined,
-              size: 70,
+              Icons.person_add_outlined,
+              size: 80,
               color: Colors.blueAccent,
             ),
             const SizedBox(height: 20),
             const Text(
               'Create Account',
               style: TextStyle(
-                fontSize: 30,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Join Master Me',
-              style: TextStyle(color: Colors.white54),
-            ),
             const SizedBox(height: 40),
-            _buildTextField(_name, 'Full Name', Icons.person_outline),
+            _buildTextField(_userName, 'Your Name', Icons.person_outline),
             const SizedBox(height: 15),
             _buildTextField(_email, 'Email Address', Icons.email_outlined),
             const SizedBox(height: 15),
@@ -126,41 +86,59 @@ class _RegisterViewState extends State<RegisterView> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                onPressed: _isLoading ? null : _register,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Sign Up',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
+                onPressed: () async {
+                  final email = _email.text.trim();
+                  final password = _password.text;
+                  final confirm = _confirmPassword.text;
+
+                  if (password != confirm) {
+                    await showErrorDialog(context, 'Passwords do not match!');
+                    return;
+                  }
+
+                  try {
+                    await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                      email: email,
+                      password: password,
+                    );
+
+                    // ارسال ایمیل تایید
+                    final user = FirebaseAuth.instance.currentUser;
+                    await user?.sendEmailVerification();
+
+                    if (context.mounted) {
+                      Navigator.of(context).pushNamed(verifyEmailRoute);
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    if (context.mounted) {
+                      await showErrorDialog(
+                        context,
+                        'Registration Error: ${e.code}',
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted)
+                      await showErrorDialog(context, e.toString());
+                  }
+                },
+                child: const Text(
+                  'Sign Up',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
               ),
             ),
-            const SizedBox(height: 25),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Already have an account? ",
-                  style: TextStyle(color: Colors.white70),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(
-                      context,
-                    ).pushNamedAndRemoveUntil(loginRoute, (route) => false);
-                  },
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(
-                      color: Colors.blueAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () {
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(loginRoute, (route) => false);
+              },
+              child: const Text(
+                'Already have an account? Login',
+                style: TextStyle(color: Colors.blueAccent),
+              ),
             ),
-            const SizedBox(height: 40),
           ],
         ),
       ),
