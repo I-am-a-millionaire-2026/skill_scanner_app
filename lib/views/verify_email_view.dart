@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
 
 class VerifyEmailView extends StatefulWidget {
@@ -10,97 +10,52 @@ class VerifyEmailView extends StatefulWidget {
 }
 
 class _VerifyEmailViewState extends State<VerifyEmailView> {
-  bool _isSendingVerification = false;
-
-  // Function to send verification email
-  Future<void> _sendVerificationEmail() async {
-    setState(() {
-      _isSendingVerification = true;
-    });
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await user.sendEmailVerification();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Verification email sent! Please check your inbox.',
-              ),
-            ),
-          );
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        String message = 'An error occurred';
-        if (e.code == 'too-many-requests') {
-          message = 'Too many requests. Please try again later.';
-        }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSendingVerification = false;
-        });
-      }
-    }
-  }
+  bool _isSending = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verify Email'),
-        backgroundColor: Colors.blueAccent,
-      ),
+      appBar: AppBar(title: const Text('Verify Email')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              "We've already sent you an email verification. Please check your inbox to activate your account.",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
+              'A verification email has been sent. Please check your inbox and click the link. Then, press the button below.',
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
-
-            // Send Email Again Button
-            ElevatedButton(
-              onPressed: _isSendingVerification ? null : _sendVerificationEmail,
-              child: _isSendingVerification
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Send verification email again'),
-            ),
-
             const SizedBox(height: 20),
-
-            // Restart Button (Logs out and goes to Login)
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                if (mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil(loginRoute, (route) => false);
+                final user = FirebaseAuth.instance.currentUser;
+                await user?.reload();
+                if (user?.emailVerified ?? false) {
+                  if (mounted) {
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil(notesRoute, (r) => false);
+                  }
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Email not verified yet.')),
+                    );
+                  }
                 }
               },
-              child: const Text(
-                'Restart / Back to Login',
-                style: TextStyle(color: Colors.blueAccent),
-              ),
+              child: const Text('I have verified'),
+            ),
+            TextButton(
+              onPressed: _isSending
+                  ? null
+                  : () async {
+                      setState(() => _isSending = true);
+                      await FirebaseAuth.instance.currentUser
+                          ?.sendEmailVerification();
+                      setState(() => _isSending = false);
+                    },
+              child: const Text('Resend verification email'),
             ),
           ],
         ),

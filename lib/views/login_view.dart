@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_scanner/constants/routes.dart';
-// وارد کردن فایل جدید برای نمایش دیالوگ‌ها
+import 'package:skill_scanner/services/auth/auth_exceptions.dart';
+import 'package:skill_scanner/services/auth/auth_service.dart'; // استفاده از سرویس واسطه جدید
 import 'package:skill_scanner/utilities/show_error_dialog.dart';
 
 class LoginView extends StatefulWidget {
@@ -14,7 +14,6 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   late final TextEditingController _email;
   late final TextEditingController _password;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -33,77 +32,117 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
+      appBar: AppBar(title: const Text('Login')),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 80),
               const Text(
-                'Welcome Back',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Welcome Back!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
+              const Text('Please log in to your account to continue.'),
+              const SizedBox(height: 30),
               TextField(
                 controller: _email,
+                enableSuggestions: false,
+                autocorrect: false,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white),
-                decoration: _getInputDecoration('Email', Icons.email),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter your email here',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
               TextField(
                 controller: _password,
                 obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: _getInputDecoration('Password', Icons.lock),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _handleForgotPassword,
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: Colors.blueAccent),
-                  ),
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password here',
+                  border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _login,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Sign In',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
-                        ),
-                ),
-              ),
+              const SizedBox(height: 25),
               Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                    ).pushNamedAndRemoveUntil(registerRoute, (route) => false);
-                  },
-                  child: const Text(
-                    'New here? Create Account',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final email = _email.text;
+                          final password = _password.text;
+                          try {
+                            // استفاده از AuthService.firebase() به عنوان واسطه
+                            await AuthService.firebase().logIn(
+                              email: email,
+                              password: password,
+                            );
+
+                            final user = AuthService.firebase().currentUser;
+                            if (user != null) {
+                              if (user.isEmailVerified) {
+                                if (mounted) {
+                                  Navigator.of(context).pushNamedAndRemoveUntil(
+                                    notesRoute,
+                                    (route) => false,
+                                  );
+                                }
+                              } else {
+                                if (mounted) {
+                                  Navigator.of(context).pushNamedAndRemoveUntil(
+                                    verifyEmailRoute,
+                                    (route) => false,
+                                  );
+                                }
+                              }
+                            }
+                          } on UserNotFoundAuthException {
+                            if (mounted) {
+                              await showErrorDialog(context, 'User not found');
+                            }
+                          } on WrongPasswordAuthException {
+                            if (mounted) {
+                              await showErrorDialog(
+                                context,
+                                'Wrong credentials',
+                              );
+                            }
+                          } on GenericAuthException {
+                            if (mounted) {
+                              await showErrorDialog(
+                                context,
+                                'Authentication error',
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              await showErrorDialog(context, e.toString());
+                            }
+                          }
+                        },
+                        child: const Text('Login'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          registerRoute,
+                          (route) => false,
+                        );
+                      },
+                      child: const Text('Not registered yet? Register here!'),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -111,93 +150,5 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
     );
-  }
-
-  InputDecoration _getInputDecoration(String hint, IconData icon) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white38),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.1),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      prefixIcon: Icon(icon, color: Colors.blueAccent),
-    );
-  }
-
-  Future<void> _login() async {
-    final email = _email.text.trim();
-    final password = _password.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      await showErrorDialog(context, 'Please fill in all fields');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil(notesRoute, (route) => false);
-      }
-    } on FirebaseAuthException catch (e) {
-      _handleError(e.code, e.message);
-    } catch (e) {
-      _handleError('unknown-error', e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleForgotPassword() async {
-    final email = _email.text.trim();
-    if (email.isEmpty) {
-      await showErrorDialog(context, 'Please enter your email address first.');
-      return;
-    }
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      if (mounted) {
-        await showSuccessDialog(
-          context,
-          'Password reset link sent to your email.',
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      _handleError(e.code, e.message);
-    } catch (e) {
-      _handleError('unknown-error', e.toString());
-    }
-  }
-
-  void _handleError(String code, String? technicalMessage) {
-    String displayMessage;
-    switch (code) {
-      case 'user-not-found':
-        displayMessage = 'No user found with this email.';
-        break;
-      case 'wrong-password':
-        displayMessage = 'The password you entered is incorrect.';
-        break;
-      case 'invalid-credential':
-        displayMessage = 'Invalid email or password credentials.';
-        break;
-      case 'network-request-failed':
-        displayMessage = 'Please check your internet connection.';
-        break;
-      default:
-        displayMessage =
-            technicalMessage ?? 'An unexpected error occurred ($code).';
-    }
-    if (mounted) {
-      showErrorDialog(context, displayMessage);
-    }
   }
 }

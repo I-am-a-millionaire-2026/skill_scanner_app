@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/utilities/show_error_dialog.dart';
+import 'package:skill_scanner/services/auth/auth_exceptions.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -102,7 +103,6 @@ class _RegisterViewState extends State<RegisterView> {
                       password: password,
                     );
 
-                    // ارسال ایمیل تایید
                     final user = FirebaseAuth.instance.currentUser;
                     await user?.sendEmailVerification();
 
@@ -110,15 +110,33 @@ class _RegisterViewState extends State<RegisterView> {
                       Navigator.of(context).pushNamed(verifyEmailRoute);
                     }
                   } on FirebaseAuthException catch (e) {
-                    if (context.mounted) {
-                      await showErrorDialog(
-                        context,
-                        'Registration Error: ${e.code}',
-                      );
+                    // Clean up exceptions logic
+                    if (e.code == 'weak-password') {
+                      if (context.mounted) {
+                        await showErrorDialog(
+                          context,
+                          'The password is too weak',
+                        );
+                      }
+                      throw WeakPasswordAuthException(); // 5
+                    } else if (e.code == 'email-already-in-use') {
+                      if (context.mounted) {
+                        await showErrorDialog(
+                          context,
+                          'Email is already in use',
+                        );
+                      }
+                      throw EmailAlreadyInUseAuthException(); // 6
+                    } else {
+                      if (context.mounted) {
+                        await showErrorDialog(context, 'Error: ${e.code}');
+                      }
+                      throw GenericAuthException(); // 7
                     }
                   } catch (e) {
-                    if (context.mounted)
+                    if (context.mounted) {
                       await showErrorDialog(context, e.toString());
+                    }
                   }
                 },
                 child: const Text(
