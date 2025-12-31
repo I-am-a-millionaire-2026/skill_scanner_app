@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/utilities/show_error_dialog.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
+import 'package:skill_scanner/services/auth/auth_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -91,52 +91,33 @@ class _RegisterViewState extends State<RegisterView> {
                   final email = _email.text.trim();
                   final password = _password.text;
                   final confirm = _confirmPassword.text;
-
                   if (password != confirm) {
                     await showErrorDialog(context, 'Passwords do not match!');
                     return;
                   }
-
                   try {
-                    await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                    await AuthService.firebase().createUser(
                       email: email,
                       password: password,
                     );
-
-                    final user = FirebaseAuth.instance.currentUser;
-                    await user?.sendEmailVerification();
-
-                    if (context.mounted) {
+                    await AuthService.firebase().sendEmailVerification();
+                    if (context.mounted)
                       Navigator.of(context).pushNamed(verifyEmailRoute);
-                    }
-                  } on FirebaseAuthException catch (e) {
-                    // Clean up exceptions logic
-                    if (e.code == 'weak-password') {
-                      if (context.mounted) {
-                        await showErrorDialog(
-                          context,
-                          'The password is too weak',
-                        );
-                      }
-                      throw WeakPasswordAuthException(); // 5
-                    } else if (e.code == 'email-already-in-use') {
-                      if (context.mounted) {
-                        await showErrorDialog(
-                          context,
-                          'Email is already in use',
-                        );
-                      }
-                      throw EmailAlreadyInUseAuthException(); // 6
-                    } else {
-                      if (context.mounted) {
-                        await showErrorDialog(context, 'Error: ${e.code}');
-                      }
-                      throw GenericAuthException(); // 7
-                    }
+                  } on WeakPasswordAuthException {
+                    if (context.mounted)
+                      await showErrorDialog(
+                        context,
+                        'The password is too weak',
+                      );
+                  } on EmailAlreadyInUseAuthException {
+                    if (context.mounted)
+                      await showErrorDialog(context, 'Email is already in use');
+                  } on GenericAuthException {
+                    if (context.mounted)
+                      await showErrorDialog(context, 'Registration error');
                   } catch (e) {
-                    if (context.mounted) {
+                    if (context.mounted)
                       await showErrorDialog(context, e.toString());
-                    }
                   }
                 },
                 child: const Text(

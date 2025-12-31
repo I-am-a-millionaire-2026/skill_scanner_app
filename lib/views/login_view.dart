@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
-import 'package:skill_scanner/services/auth/auth_service.dart'; // استفاده از سرویس واسطه جدید
+import 'package:skill_scanner/services/auth/auth_service.dart';
 import 'package:skill_scanner/utilities/show_error_dialog.dart';
 
 class LoginView extends StatefulWidget {
@@ -81,52 +81,42 @@ class _LoginViewState extends State<LoginView> {
                           final email = _email.text;
                           final password = _password.text;
                           try {
-                            // استفاده از AuthService.firebase() به عنوان واسطه
                             await AuthService.firebase().logIn(
                               email: email,
                               password: password,
                             );
-
                             final user = AuthService.firebase().currentUser;
-                            if (user != null) {
-                              if (user.isEmailVerified) {
-                                if (mounted) {
-                                  Navigator.of(context).pushNamedAndRemoveUntil(
-                                    notesRoute,
-                                    (route) => false,
-                                  );
-                                }
+                            if (mounted) {
+                              if (user?.isEmailVerified ?? false) {
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                  notesRoute,
+                                  (route) => false,
+                                );
                               } else {
-                                if (mounted) {
-                                  Navigator.of(context).pushNamedAndRemoveUntil(
-                                    verifyEmailRoute,
-                                    (route) => false,
-                                  );
-                                }
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                  verifyEmailRoute,
+                                  (route) => false,
+                                );
                               }
                             }
                           } on UserNotFoundAuthException {
-                            if (mounted) {
+                            if (mounted)
                               await showErrorDialog(context, 'User not found');
-                            }
                           } on WrongPasswordAuthException {
-                            if (mounted) {
+                            if (mounted)
                               await showErrorDialog(
                                 context,
                                 'Wrong credentials',
                               );
-                            }
                           } on GenericAuthException {
-                            if (mounted) {
+                            if (mounted)
                               await showErrorDialog(
                                 context,
                                 'Authentication error',
                               );
-                            }
                           } catch (e) {
-                            if (mounted) {
+                            if (mounted)
                               await showErrorDialog(context, e.toString());
-                            }
                           }
                         },
                         child: const Text('Login'),

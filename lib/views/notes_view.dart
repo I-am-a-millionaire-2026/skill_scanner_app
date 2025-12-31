@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/views/notes_view.dart
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
+import 'package:skill_scanner/enums/menu_action.dart';
+import 'package:skill_scanner/services/auth/auth_service.dart';
 import 'package:skill_scanner/utilities/show_logout_dialog.dart';
-
-enum MenuAction { logout }
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -25,8 +25,7 @@ class _NotesViewState extends State<NotesView> {
                 case MenuAction.logout:
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
-                    // This is the command that triggers the return to LoginView
-                    await FirebaseAuth.instance.signOut();
+                    await AuthService.firebase().logOut();
                     if (!mounted) return;
                     Navigator.of(
                       context,
@@ -46,9 +45,7 @@ class _NotesViewState extends State<NotesView> {
           ),
         ],
       ),
-      body: const Center(
-        child: Text('Welcome! Your notes will be displayed here.'),
-      ),
+      body: const Center(child: Text('Notes View')),
     );
   }
 }

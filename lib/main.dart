@@ -1,7 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
-import 'package:skill_scanner/firebase_options.dart';
+import 'package:skill_scanner/services/auth/auth_service.dart';
 import 'package:skill_scanner/views/login_view.dart';
 import 'package:skill_scanner/views/notes_view.dart';
 import 'package:skill_scanner/views/register_view.dart';
@@ -9,18 +8,11 @@ import 'package:skill_scanner/views/verify_email_view.dart';
 import 'package:skill_scanner/views/auth_gate.dart';
 
 void main() async {
+  // اطمینان از اتصال موتور فلاتر
   WidgetsFlutterBinding.ensureInitialized();
 
-  // حل قطعی خطای duplicate-app و صفحه سفید
-  try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
-  } catch (e) {
-    debugPrint('Firebase already initialized or error: $e');
-  }
+  // استفاده از سرویس برای مقداردهی ایمن (بدون ارور Duplicate)
+  await AuthService.firebase().initialize();
 
   runApp(
     MaterialApp(
@@ -31,7 +23,7 @@ void main() async {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      // قرار دادن AuthGate به عنوان خانه اصلی برنامه
+      // صفحه شروع بر اساس وضعیت لاگین
       home: const AuthGate(),
       routes: {
         loginRoute: (context) => const LoginView(),
