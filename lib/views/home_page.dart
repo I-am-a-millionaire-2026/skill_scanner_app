@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'notes_view.dart';
+import 'package:skill_scanner/views/notes/notes_view.dart'; // مسیر جدید اصلاح شد
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
