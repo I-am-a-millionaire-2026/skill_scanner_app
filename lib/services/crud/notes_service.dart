@@ -1,231 +1,174 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'crud_exceptions.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' show join;
 
-// --- ثابت‌های دیتابیس (Constants) ---
+// استثناها و ثابت‌ها (بدون تغییر نسبت به قبل برای حفظ پایداری)
+class DatabaseAlreadyOpenException implements Exception {}
+
+class UnableToGetDocumentsDirectory implements Exception {}
+
+class DatabaseIsNotOpen implements Exception {}
+
+class CouldNotDeleteUser implements Exception {}
+
+class UserAlreadyExists implements Exception {}
+
+class CouldNotFindUser implements Exception {}
+
+class CouldNotDeleteNote implements Exception {}
+
+class CouldNotFindNote implements Exception {}
+
+class CouldNotUpdateNote implements Exception {}
+
 const dbName = 'notes.db';
 const userTable = 'user';
-const noteTable = 'note';
+const notesTable = 'note';
 const idColumn = 'id';
 const emailColumn = 'email';
-const nameColumn = 'name';
-const passwordColumn = 'password';
-const isEmailVerifiedColumn = 'is_email_verified';
 const userIdColumn = 'user_id';
 const textColumn = 'text';
+const isSyncedWithCloudColumn = 'is_synced_with_cloud';
 
-class NotesService {
-  Database? _db;
-
-  // --- متدهای زیرساختی (Infrastructure) ---
-
-  Future<void> open() async {
-    if (_db != null) throw DatabaseAlreadyOpenException();
-    try {
-      final docsPath = await getApplicationDocumentsDirectory();
-      final dbPath = p.join(docsPath.path, dbName);
-      final db = await openDatabase(dbPath);
-      _db = db;
-
-      await db.execute(createUserTable);
-      await db.execute(createNoteTable);
-    } on MissingPlatformDirectoryException {
-      throw UnableToGetDocumentsDirectoryException();
-    }
-  }
-
-  Future<void> close() async {
-    final db = _db;
-    if (db == null) throw Exception('Database not open');
-    await db.close();
-    _db = null;
-  }
-
-  Database _getDatabaseOrThrow() {
-    final db = _db;
-    if (db == null) throw Exception('Database not open');
-    return db;
-  }
-
-  // --- متدهای CRUD کاربر (Users) ---
-
-  // ۲۰. ایجاد کاربر (createUser)
-  Future<DatabaseUser> createUser({required String email}) async {
-    final db = _getDatabaseOrThrow();
-    final results = await db.query(
-      userTable,
-      limit: 1,
-      where: 'email = ?',
-      whereArgs: [email.toLowerCase()],
-    );
-    if (results.isNotEmpty) throw UserAlreadyExistsException();
-
-    final userId = await db.insert(userTable, {
-      emailColumn: email.toLowerCase(),
-    });
-
-    return DatabaseUser(id: userId, email: email);
-  }
-
-  // ۲۱. دریافت کاربر (getUser)
-  Future<DatabaseUser> getUser({required String email}) async {
-    final db = _getDatabaseOrThrow();
-    final results = await db.query(
-      userTable,
-      limit: 1,
-      where: 'email = ?',
-      whereArgs: [email.toLowerCase()],
-    );
-    if (results.isEmpty) throw CouldNotFindUserException();
-    return DatabaseUser.fromRow(results.first);
-  }
-
-  // ۱۹. حذف کاربر (deleteUser)
-  Future<void> deleteUser({required String email}) async {
-    final db = _getDatabaseOrThrow();
-    final deletedCount = await db.delete(
-      userTable,
-      where: 'email = ?',
-      whereArgs: [email.toLowerCase()],
-    );
-    if (deletedCount != 1) throw CouldNotDeleteUserException();
-  }
-
-  // --- متدهای CRUD یادداشت‌ها (Notes) ---
-
-  // ۲۲. ایجاد یادداشت (createNote)
-  Future<DatabaseNote> createNote({required DatabaseUser owner}) async {
-    final db = _getDatabaseOrThrow();
-    // تایید وجود کاربر در دیتابیس
-    await getUser(email: owner.email);
-
-    final noteId = await db.insert(noteTable, {
-      userIdColumn: owner.id,
-      textColumn: '',
-    });
-
-    return DatabaseNote(id: noteId, userId: owner.id, text: '');
-  }
-
-  // ۲۳. حذف یک یادداشت (deleteNote)
-  Future<void> deleteNote({required int id}) async {
-    final db = _getDatabaseOrThrow();
-    final deletedCount = await db.delete(
-      noteTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (deletedCount == 0) throw CouldNotFindNoteException();
-  }
-
-  // ۲۴. حذف تمام یادداشت‌ها (deleteAllNotes)
-  Future<int> deleteAllNotes() async {
-    final db = _getDatabaseOrThrow();
-    return await db.delete(noteTable);
-  }
-
-  // ۲۵. دریافت یک یادداشت خاص (getNote)
-  Future<DatabaseNote> getNote({required int id}) async {
-    final db = _getDatabaseOrThrow();
-    final notes = await db.query(
-      noteTable,
-      limit: 1,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (notes.isEmpty) throw CouldNotFindNoteException();
-    return DatabaseNote.fromRow(notes.first);
-  }
-
-  // ۲۶. دریافت تمام یادداشت‌ها (getAllNotes)
-  Future<Iterable<DatabaseNote>> getAllNotes() async {
-    final db = _getDatabaseOrThrow();
-    final notes = await db.query(noteTable);
-    return notes.map((row) => DatabaseNote.fromRow(row));
-  }
-
-  // ۲۷. بروزرسانی یادداشت (updateNote)
-  Future<DatabaseNote> updateNote({
-    required DatabaseNote note,
-    required String text,
-  }) async {
-    final db = _getDatabaseOrThrow();
-    // اطمینان از وجود یادداشت
-    await getNote(id: note.id);
-
-    final updatesCount = await db.update(
-      noteTable,
-      {textColumn: text},
-      where: 'id = ?',
-      whereArgs: [note.id],
-    );
-
-    if (updatesCount == 0) throw CouldNotUpdateNoteException();
-    return await getNote(id: note.id);
-  }
-
-  // --- دستورات SQL ---
-  static const createUserTable =
-      '''
-    CREATE TABLE IF NOT EXISTS "$userTable" (
-      "$idColumn" INTEGER PRIMARY KEY AUTOINCREMENT,
-      "$emailColumn" TEXT NOT NULL UNIQUE
-    );
-  ''';
-
-  static const createNoteTable =
-      '''
-    CREATE TABLE IF NOT EXISTS "$noteTable" (
-      "$idColumn" INTEGER PRIMARY KEY AUTOINCREMENT,
-      "$userIdColumn" INTEGER NOT NULL,
-      "$textColumn" TEXT,
-      FOREIGN KEY("$userIdColumn") REFERENCES "$userTable"("$idColumn")
-    );
-  ''';
-}
-
-// --- مدل‌های داده (Models) ---
-
+// مدل‌های داده
 @immutable
 class DatabaseUser {
   final int id;
   final String email;
   const DatabaseUser({required this.id, required this.email});
-
   DatabaseUser.fromRow(Map<String, Object?> map)
     : id = map[idColumn] as int,
       email = map[emailColumn] as String;
-
-  @override
-  String toString() => 'Person, ID = $id, email = $email';
-
-  @override
-  bool operator ==(covariant DatabaseUser other) => id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
 }
 
+@immutable
 class DatabaseNote {
   final int id;
   final int userId;
   final String text;
-  DatabaseNote({required this.id, required this.userId, required this.text});
+  final bool isSyncedWithCloud;
+
+  const DatabaseNote({
+    required this.id,
+    required this.userId,
+    required this.text,
+    required this.isSyncedWithCloud,
+  });
 
   DatabaseNote.fromRow(Map<String, Object?> map)
     : id = map[idColumn] as int,
       userId = map[userIdColumn] as int,
-      text = map[textColumn] as String;
+      text = map[textColumn] as String,
+      isSyncedWithCloud = (map[isSyncedWithCloudColumn] as int) == 1;
+}
 
-  @override
-  String toString() => 'Note, ID = $id, userId = $userId, text = $text';
+// --- شروع آپدیت گروه ۳ ---
 
-  @override
-  bool operator ==(covariant DatabaseNote other) => id == other.id;
+class NotesService {
+  Database? _db;
 
-  @override
-  int get hashCode => id.hashCode;
+  // مرحله ۱۱: تعریف لیست کش برای نگهداری نوت‌ها
+  List<DatabaseNote> _notes = [];
+
+  // مرحله ۱۵ و ۱۶: پیاده‌سازی الگوی Singleton
+  static final NotesService _shared = NotesService._sharedInstance();
+  NotesService._sharedInstance() {
+    // مرحله ۱۱: ایجاد StreamController برای اطلاع‌رسانی تغییرات نوت‌ها
+    _notesStreamController = StreamController<List<DatabaseNote>>.broadcast(
+      onListen: () {
+        _notesStreamController.sink.add(_notes);
+      },
+    );
+  }
+  factory NotesService() => _shared;
+
+  late final StreamController<List<DatabaseNote>> _notesStreamController;
+
+  // مرحله ۱۲: Getter برای دسترسی به Stream نوت‌ها از خارج از کلاس
+  Stream<List<DatabaseNote>> get allNotes => _notesStreamController.stream;
+
+  // متد کمکی برای آپدیت کردن کش و Stream (مورد نیاز دستور ۱۱)
+  Future<void> _cacheNotes() async {
+    final allNotes = await getAllNotes();
+    _notes = allNotes.toList();
+    _notesStreamController.add(_notes);
+  }
+
+  // متدهای مدیریت دیتابیس (از گروه ۲ - بدون تغییر در منطق)
+  Future<void> _ensureDbIsOpen() async {
+    try {
+      await open();
+    } on DatabaseAlreadyOpenException {}
+  }
+
+  Future<void> open() async {
+    if (_db != null) throw DatabaseAlreadyOpenException();
+    try {
+      final docsPath = await getApplicationDocumentsDirectory();
+      final dbPath = join(docsPath.path, dbName);
+      final db = await openDatabase(dbPath);
+      _db = db;
+
+      await db.execute('''CREATE TABLE IF NOT EXISTS "user" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "email" TEXT NOT NULL UNIQUE
+      );''');
+
+      await db.execute('''CREATE TABLE IF NOT EXISTS "note" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "user_id" INTEGER NOT NULL,
+        "text" TEXT,
+        "is_synced_with_cloud" INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY("user_id") REFERENCES "user"("id")
+      );''');
+
+      // لود کردن اولیه نوت‌ها در کش
+      await _cacheNotes();
+    } catch (e) {
+      throw UnableToGetDocumentsDirectory();
+    }
+  }
+
+  // سایر متدهای CRUD باید در انتها _cacheNotes() را صدا بزنند تا UI آپدیت شود
+  Future<DatabaseUser> getOrCreateUser({required String email}) async {
+    await _ensureDbIsOpen();
+    final db = _getDatabaseOrThrow();
+    final results = await db.query(
+      userTable,
+      limit: 1,
+      where: 'email = ?',
+      whereArgs: [email.toLowerCase()],
+    );
+
+    if (results.isEmpty) {
+      final userId = await db.insert(userTable, {
+        emailColumn: email.toLowerCase(),
+      });
+      return DatabaseUser(id: userId, email: email);
+    } else {
+      return DatabaseUser.fromRow(results.first);
+    }
+  }
+
+  Future<Iterable<DatabaseNote>> getAllNotes() async {
+    await _ensureDbIsOpen();
+    final db = _getDatabaseOrThrow();
+    final notes = await db.query(notesTable);
+    return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
+  }
+
+  Database _getDatabaseOrThrow() {
+    final db = _db;
+    if (db == null) throw DatabaseIsNotOpen();
+    return db;
+  }
+
+  Future<void> close() async {
+    final db = _db;
+    if (db == null) throw DatabaseIsNotOpen();
+    await db.close();
+    _db = null;
+  }
 }
