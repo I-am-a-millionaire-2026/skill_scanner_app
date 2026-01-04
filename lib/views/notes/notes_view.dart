@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
-import 'package:skill_scanner/enums/menu_action.dart'; // حتماً این را ایمپورت کنید
+import 'package:skill_scanner/enums/menu_action.dart';
 import 'package:skill_scanner/services/auth/auth_service.dart';
 import 'package:skill_scanner/services/crud/notes_service.dart';
+import 'package:skill_scanner/utilities/show_logout_dialog.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -13,13 +14,17 @@ class NotesView extends StatefulWidget {
 
 class _NotesViewState extends State<NotesView> {
   late final NotesService _notesService;
+  // گرفتن ایمیل کاربر فعلی برای هندل کردن دیتابیس
   String get userEmail => AuthService.firebase().currentUser!.email;
 
   @override
   void initState() {
     _notesService = NotesService();
+    _notesService.open(); // اطمینان از باز شدن دیتابیس
     super.initState();
   }
+
+  // طبق دسته ۲ - دستور ۵: متد dispose حذف شده است
 
   @override
   Widget build(BuildContext context) {
@@ -27,28 +32,24 @@ class _NotesViewState extends State<NotesView> {
       appBar: AppBar(
         title: const Text('Your Notes'),
         actions: [
-          // دکمه اضافه کردن نوت جدید
           IconButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed(newNoteRoute);
-            },
+            onPressed: () => Navigator.of(context).pushNamed(newNoteRoute),
             icon: const Icon(Icons.add),
           ),
-          // اضافه کردن منوی سه نقطه برای Logout
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
               switch (value) {
                 case MenuAction.logout:
-                  final shouldLogout = await showLogOutDialog(context);
+                  final shouldLogout = await showLogOutDialog(
+                    context,
+                  ); // دقت در حرف O بزرگ
                   if (shouldLogout) {
                     await AuthService.firebase().logOut();
-                    if (context.mounted) {
-                      Navigator.of(
-                        context,
-                      ).pushNamedAndRemoveUntil(loginRoute, (_) => false);
-                    }
+                    if (!mounted) return;
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil(loginRoute, (_) => false);
                   }
-                  break;
               }
             },
             itemBuilder: (context) {
@@ -62,6 +63,7 @@ class _NotesViewState extends State<NotesView> {
           ),
         ],
       ),
+      // بدنه اصلی برای نمایش نوت‌ها - دسته ۳
       body: FutureBuilder(
         future: _notesService.getOrCreateUser(email: userEmail),
         builder: (context, snapshot) {
@@ -75,9 +77,8 @@ class _NotesViewState extends State<NotesView> {
                     case ConnectionState.active:
                       if (snapshot.hasData) {
                         final allNotes = snapshot.data as List<DatabaseNote>;
-                        if (allNotes.isEmpty) {
-                          return const Center(child: Text('No notes yet!'));
-                        }
+
+                        // دستور ۶: استفاده از ListView.builder برای ساخت تایل‌ها
                         return ListView.builder(
                           itemCount: allNotes.length,
                           itemBuilder: (context, index) {
@@ -89,6 +90,8 @@ class _NotesViewState extends State<NotesView> {
                                 softWrap: true,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              // دستور ۷: نمایش دمو و اطمینان از دیده شدن نوت‌ها
+                              leading: const Icon(Icons.note),
                             );
                           },
                         );
@@ -107,27 +110,4 @@ class _NotesViewState extends State<NotesView> {
       ),
     );
   }
-}
-
-// متد نمایش دیالوگ تایید خروج
-Future<bool> showLogOutDialog(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Sign out'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Log out'),
-          ),
-        ],
-      );
-    },
-  ).then((value) => value ?? false);
 }

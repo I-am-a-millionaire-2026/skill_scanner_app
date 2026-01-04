@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 Future<bool> showLogOutDialog(BuildContext context) {
+  // نام متد با O بزرگ
   return showDialog<bool>(
     context: context,
     builder: (context) {
