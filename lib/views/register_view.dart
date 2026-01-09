@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
-import 'package:skill_scanner/utilities/show_error_dialog.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
 import 'package:skill_scanner/services/auth/auth_service.dart';
+// ایمپورت صحیح دیالوگ برای رفع ارور showErrorDialog
+import 'package:skill_scanner/utilities/dialogs/error_dialog.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -38,7 +39,7 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF121212), // دیزاین مشکی که ساخته بودی
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 30.0),
         child: Column(
@@ -91,33 +92,34 @@ class _RegisterViewState extends State<RegisterView> {
                   final email = _email.text.trim();
                   final password = _password.text;
                   final confirm = _confirmPassword.text;
+
                   if (password != confirm) {
-                    await showErrorDialog(context, 'Passwords do not match!');
+                    if (mounted) {
+                      await showErrorDialog(context, 'Passwords do not match!');
+                    }
                     return;
                   }
+
                   try {
                     await AuthService.firebase().createUser(
                       email: email,
                       password: password,
                     );
                     await AuthService.firebase().sendEmailVerification();
-                    if (context.mounted)
+                    if (mounted) {
                       Navigator.of(context).pushNamed(verifyEmailRoute);
+                    }
                   } on WeakPasswordAuthException {
-                    if (context.mounted)
-                      await showErrorDialog(
-                        context,
-                        'The password is too weak',
-                      );
+                    if (mounted)
+                      await showErrorDialog(context, 'Weak password');
                   } on EmailAlreadyInUseAuthException {
-                    if (context.mounted)
-                      await showErrorDialog(context, 'Email is already in use');
+                    if (mounted)
+                      await showErrorDialog(context, 'Email already in use');
                   } on GenericAuthException {
-                    if (context.mounted)
+                    if (mounted)
                       await showErrorDialog(context, 'Registration error');
                   } catch (e) {
-                    if (context.mounted)
-                      await showErrorDialog(context, e.toString());
+                    if (mounted) await showErrorDialog(context, e.toString());
                   }
                 },
                 child: const Text(
@@ -144,6 +146,7 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
+  // متد کمکی برای حفظ دیزاین فیلدهای متنی تو
   Widget _buildTextField(
     TextEditingController controller,
     String hint,

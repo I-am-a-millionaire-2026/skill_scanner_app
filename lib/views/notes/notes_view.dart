@@ -3,7 +3,8 @@ import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/enums/menu_action.dart';
 import 'package:skill_scanner/services/auth/auth_service.dart';
 import 'package:skill_scanner/services/crud/notes_service.dart';
-import 'package:skill_scanner/utilities/show_logout_dialog.dart';
+import 'package:skill_scanner/utilities/dialogs/logout_dialog.dart';
+import 'package:skill_scanner/views/notes/notes_list_view.dart'; // اضافه کردن ایمپورت جدید
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -14,17 +15,14 @@ class NotesView extends StatefulWidget {
 
 class _NotesViewState extends State<NotesView> {
   late final NotesService _notesService;
-  // گرفتن ایمیل کاربر فعلی برای هندل کردن دیتابیس
   String get userEmail => AuthService.firebase().currentUser!.email;
 
   @override
   void initState() {
     _notesService = NotesService();
-    _notesService.open(); // اطمینان از باز شدن دیتابیس
+    _notesService.open();
     super.initState();
   }
-
-  // طبق دسته ۲ - دستور ۵: متد dispose حذف شده است
 
   @override
   Widget build(BuildContext context) {
@@ -33,16 +31,16 @@ class _NotesViewState extends State<NotesView> {
         title: const Text('Your Notes'),
         actions: [
           IconButton(
-            onPressed: () => Navigator.of(context).pushNamed(newNoteRoute),
+            onPressed: () {
+              Navigator.of(context).pushNamed(newNoteRoute);
+            },
             icon: const Icon(Icons.add),
           ),
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
               switch (value) {
                 case MenuAction.logout:
-                  final shouldLogout = await showLogOutDialog(
-                    context,
-                  ); // دقت در حرف O بزرگ
+                  final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     await AuthService.firebase().logOut();
                     if (!mounted) return;
@@ -63,7 +61,6 @@ class _NotesViewState extends State<NotesView> {
           ),
         ],
       ),
-      // بدنه اصلی برای نمایش نوت‌ها - دسته ۳
       body: FutureBuilder(
         future: _notesService.getOrCreateUser(email: userEmail),
         builder: (context, snapshot) {
@@ -77,24 +74,8 @@ class _NotesViewState extends State<NotesView> {
                     case ConnectionState.active:
                       if (snapshot.hasData) {
                         final allNotes = snapshot.data as List<DatabaseNote>;
-
-                        // دستور ۶: استفاده از ListView.builder برای ساخت تایل‌ها
-                        return ListView.builder(
-                          itemCount: allNotes.length,
-                          itemBuilder: (context, index) {
-                            final note = allNotes[index];
-                            return ListTile(
-                              title: Text(
-                                note.text,
-                                maxLines: 1,
-                                softWrap: true,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              // دستور ۷: نمایش دمو و اطمینان از دیده شدن نوت‌ها
-                              leading: const Icon(Icons.note),
-                            );
-                          },
-                        );
+                        // طبق دستور گروه 3: استفاده از ویجت مجزا
+                        return NotesListView(notes: allNotes);
                       } else {
                         return const Center(child: CircularProgressIndicator());
                       }

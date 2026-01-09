@@ -1,34 +1,51 @@
-import 'package:skill_scanner/services/auth/auth_provider.dart';
-import 'package:skill_scanner/services/auth/auth_user.dart';
-import 'package:skill_scanner/services/auth/firebase_auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'auth_user.dart';
 
-class AuthService implements AuthProvider {
-  final AuthProvider provider;
+class AuthService {
+  static final AuthService _shared = AuthService._sharedInstance();
+  AuthService._sharedInstance();
+  factory AuthService.firebase() => _shared;
 
-  const AuthService(this.provider);
+  FirebaseAuth? _firebaseAuth;
 
-  // Singleton-like access point
-  factory AuthService.firebase() => AuthService(FirebaseAuthProvider());
+  // ✅ Just get the instance
+  Future<void> initializeOnce() async {
+    _firebaseAuth = FirebaseAuth.instance;
+  }
 
-  @override
-  Future<void> initialize() => provider.initialize(); // Delegated
+  AuthUser? get currentUser {
+    final user = _firebaseAuth?.currentUser;
+    if (user != null) {
+      return AuthUser(email: user.email!, isEmailVerified: user.emailVerified);
+    }
+    return null;
+  }
 
-  @override
-  Future<AuthUser> createUser({
+  Future<void> logIn({required String email, required String password}) async {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> logOut() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  Future<void> createUser({
     required String email,
     required String password,
-  }) => provider.createUser(email: email, password: password);
+  }) async {
+    await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
 
-  @override
-  AuthUser? get currentUser => provider.currentUser;
-
-  @override
-  Future<AuthUser> logIn({required String email, required String password}) =>
-      provider.logIn(email: email, password: password);
-
-  @override
-  Future<void> logOut() => provider.logOut();
-
-  @override
-  Future<void> sendEmailVerification() => provider.sendEmailVerification();
+  Future<void> sendEmailVerification() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.sendEmailVerification();
+    }
+  }
 }
