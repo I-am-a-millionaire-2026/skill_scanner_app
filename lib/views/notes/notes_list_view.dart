@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:skill_scanner/services/crud/notes_service.dart';
 
 class NotesListView extends StatelessWidget {
-  final List<DatabaseNote> notes;
+  final List<String> notes; // ← قبلاً DatabaseNote بود
+  final void Function(String note) onTap;
 
-  const NotesListView({super.key, required this.notes});
+  const NotesListView({super.key, required this.notes, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    if (notes.isEmpty) {
+      return const Center(child: Text('No notes yet'));
+    }
+
     return ListView.builder(
       itemCount: notes.length,
       itemBuilder: (context, index) {
         final note = notes[index];
-        return ListTile(
-          title: Text(
-            note.text,
-            maxLines: 1,
-            softWrap: true,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // شما می‌توانید آیکون یا استایل قبلی خود را اینجا حفظ کنید
-          leading: const Icon(Icons.note_alt_outlined),
-        );
+        return ListTile(title: Text(note), onTap: () => onTap(note));
       },
     );
   }
