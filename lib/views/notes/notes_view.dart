@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:skill_scanner/services/crud/notes_service.dart';
 import 'package:skill_scanner/constants/routes.dart';
-import 'package:skill_scanner/views/notes/notes_list_view.dart';
+import 'create_update_note_view.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -10,23 +12,24 @@ class NotesView extends StatefulWidget {
 }
 
 class _NotesViewState extends State<NotesView> {
-  List<String> _notes = [];
+  final NotesService _notesService = NotesService();
 
-  void _addNewNote() async {
-    final result = await Navigator.of(
-      context,
-    ).pushNamed(createOrUpdateNoteRoute);
-    if (result != null && result is String) {
-      setState(() {
-        _notes.add(result);
-      });
-    }
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (route) => false);
   }
 
-  void _deleteNote(int index) {
-    setState(() {
-      _notes.removeAt(index);
-    });
+  void _openCreateNote() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreateUpdateNoteView()));
+  }
+
+  void _editNote(Note note) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => CreateUpdateNoteView(note: note)));
   }
 
   @override
@@ -35,22 +38,44 @@ class _NotesViewState extends State<NotesView> {
       appBar: AppBar(
         title: const Text('Your Notes'),
         actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _addNewNote),
+          IconButton(icon: const Icon(Icons.add), onPressed: _openCreateNote),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
-      body: NotesListView(
-        notes: _notes,
-        onDelete: _deleteNote,
-        onTap: (index) async {
-          final note = _notes[index];
-          final updatedNote = await Navigator.of(
-            context,
-          ).pushNamed(createOrUpdateNoteRoute, arguments: note);
-          if (updatedNote != null && updatedNote is String) {
-            setState(() {
-              _notes[index] = updatedNote;
-            });
+      body: StreamBuilder<List<Note>>(
+        stream: _notesService.allNotes(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final notes = snapshot.data ?? [];
+
+          if (notes.isEmpty) {
+            return const Center(child: Text('No notes yet!'));
+          }
+
+          return ListView.builder(
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              return ListTile(
+                title: Text(note.title),
+                subtitle: Text(note.content),
+                onTap: () => _editNote(note),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () async {
+                    await _notesService.deleteNote(note.id);
+                  },
+                ),
+              );
+            },
+          );
         },
       ),
     );

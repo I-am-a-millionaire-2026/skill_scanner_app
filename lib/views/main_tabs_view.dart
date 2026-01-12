@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/views/notes/notes_view.dart';
 import 'package:skill_scanner/views/notes/create_update_note_view.dart';
+import '../constants/routes.dart';
 
 class MainTabsView extends StatefulWidget {
   const MainTabsView({Key? key}) : super(key: key);
@@ -20,11 +21,7 @@ class _MainTabsViewState extends State<MainTabsView> {
       body: _tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.note), label: 'Notes'),
           BottomNavigationBarItem(icon: Icon(Icons.add), label: 'New'),
