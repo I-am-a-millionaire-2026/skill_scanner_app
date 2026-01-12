@@ -2,4 +2,4 @@ const loginRoute = '/login/';
 const registerRoute = '/register/';
 const notesRoute = '/notes/';
 const verifyEmailRoute = '/verify-email/';
-const newNoteRoute = '/notes/new-note/'; // این باید حتما باشد
+const createOrUpdateNoteRoute = '/create-or-update-note';
