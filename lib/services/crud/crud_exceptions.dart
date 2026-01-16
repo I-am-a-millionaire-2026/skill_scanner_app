@@ -16,7 +16,6 @@ class CouldNotFindNote implements Exception {}
 
 class CouldNotUpdateNote implements Exception {}
 
-// 🔴 NEW – Step 3
 class UserShouldBeSetBeforeReadingAllNotes implements Exception {
   const UserShouldBeSetBeforeReadingAllNotes();
 }

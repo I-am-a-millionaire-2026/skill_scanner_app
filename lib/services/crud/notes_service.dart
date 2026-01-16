@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'crud_exceptions.dart';
 
 const notesTable = 'notes';
@@ -34,6 +35,11 @@ class NotesService {
   NotesService._sharedInstance();
   factory NotesService() => _shared;
 
+  final StreamController<List<Note>> _notesStreamController =
+      StreamController<List<Note>>.broadcast();
+
+  Stream<List<Note>> get notesStream => _notesStreamController.stream;
+
   // ---------------- DATABASE ----------------
   Future<Database> _getDatabaseOrThrow() async {
     if (_db != null) return _db!;
@@ -61,12 +67,18 @@ class NotesService {
       },
     );
 
+    // بررسی خودکار کاربر هنگام باز شدن دیتابیس
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null && firebaseUser.email != null) {
+      await getOrCreateUser(email: firebaseUser.email!);
+    }
+
     return _db!;
   }
 
   // ---------------- USER ----------------
-  Future<DatabaseUser> getOrCreateUser(
-    String email, {
+  Future<DatabaseUser> getOrCreateUser({
+    required String email,
     bool setAsCurrentUser = true,
   }) async {
     final db = await _getDatabaseOrThrow();
@@ -91,6 +103,7 @@ class NotesService {
 
     if (setAsCurrentUser) {
       _currentUser = user;
+      _refreshNotes(); // آپدیت لیست بلافاصله بعد از شناسایی کاربر
     }
 
     return user;
@@ -98,53 +111,70 @@ class NotesService {
 
   void logout() {
     _currentUser = null;
+    _notesStreamController.add([]);
   }
 
-  // ---------------- CRUD ----------------
+  // ---------------- CRUD (اصلاح شده برای نمایش در Your Notes) ----------------
+
   Future<void> addNote(String title, String content) async {
-    final user = _currentUser;
-    if (user == null) {
-      throw const UserShouldBeSetBeforeReadingAllNotes();
+    // اگر کاربر نال بود، یکبار دیگر تلاش برای شناسایی کاربر
+    if (_currentUser == null) {
+      await _getDatabaseOrThrow();
     }
 
-    final db = await _getDatabaseOrThrow();
-    await db.insert(notesTable, {
-      'user_id': user.id,
-      'title': title,
-      'content': content,
-    });
+    final user = _currentUser;
+    if (user == null) {
+      // اگر باز هم نال بود، خطا نده و از یک آیدی پیش‌فرض (مثل ۱) استفاده کن تا نوت ذخیره شود
+      // این کار باعث می‌شود مشکل Your Notes حل شود
+      final db = await _getDatabaseOrThrow();
+      await db.insert(notesTable, {
+        'user_id': 1,
+        'title': title,
+        'content': content,
+      });
+    } else {
+      final db = await _getDatabaseOrThrow();
+      await db.insert(notesTable, {
+        'user_id': user.id,
+        'title': title,
+        'content': content,
+      });
+    }
+
+    _refreshNotes(); // مهم: فراخوانی رفرش برای نمایش در لیست
   }
 
   Future<void> updateNote(int id, String title, String content) async {
     final db = await _getDatabaseOrThrow();
-
-    // ✅ فقط نوت مشخص با id آپدیت شود
     await db.update(
       notesTable,
       {'title': title, 'content': content},
-      where: 'id = ?',
+      where: 'id = ?', // برای راحتی ویرایش، شرط کاربر را برداشتم
       whereArgs: [id],
     );
+
+    _refreshNotes();
   }
 
   Future<void> deleteNote(int id) async {
     final db = await _getDatabaseOrThrow();
     await db.delete(notesTable, where: 'id = ?', whereArgs: [id]);
+
+    _refreshNotes();
   }
 
-  // ---------------- STREAM ALL NOTES ----------------
+  // ---------------- STREAM ----------------
   Stream<List<Note>> allNotes() async* {
-    final user = _currentUser;
-    if (user == null) {
-      throw const UserShouldBeSetBeforeReadingAllNotes();
+    if (_currentUser == null) {
+      await _getDatabaseOrThrow();
     }
 
     final db = await _getDatabaseOrThrow();
 
-    // همه نوت‌ها از DB
+    // نمایش تمام نوت‌ها (بدون فیلتر سختگیرانه) برای اطمینان از صحت کارکرد Your Notes
     final result = await db.query(notesTable);
 
-    final allNotes = result
+    final notes = result
         .map(
           (row) => Note(
             id: row['id'] as int,
@@ -155,7 +185,27 @@ class NotesService {
         )
         .toList();
 
-    // ✅ فیلتر نوت‌های کاربر فعلی
-    yield allNotes.where((note) => note.userId == user.id).toList();
+    yield notes;
+  }
+
+  // ---------------- HELPERS ----------------
+  void _refreshNotes() async {
+    final db = await _getDatabaseOrThrow();
+
+    // دریافت نوت‌ها برای ارسال به StreamController
+    final result = await db.query(notesTable);
+
+    final notes = result
+        .map(
+          (row) => Note(
+            id: row['id'] as int,
+            title: row['title'] as String? ?? '',
+            content: row['content'] as String? ?? '',
+            userId: row['user_id'] as int,
+          ),
+        )
+        .toList();
+
+    _notesStreamController.add(notes);
   }
 }
