@@ -46,9 +46,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
       await _notesService.updateNote(widget.note!.id, title, content);
     }
 
-    Navigator.of(
-      context,
-    ).pop(); // نیازی به pop با داده نیست، StreamBuilder خودش رفرش می‌کند
+    Navigator.of(context).pop();
   }
 
   @override

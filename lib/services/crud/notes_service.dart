@@ -67,7 +67,7 @@ class NotesService {
       },
     );
 
-    // بررسی خودکار کاربر هنگام باز شدن دیتابیس
+    // وقتی دیتابیس باز شد، currentUser رو با FirebaseAuth مقداردهی کن
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser != null && firebaseUser.email != null) {
       await getOrCreateUser(email: firebaseUser.email!);
@@ -103,7 +103,7 @@ class NotesService {
 
     if (setAsCurrentUser) {
       _currentUser = user;
-      _refreshNotes(); // آپدیت لیست بلافاصله بعد از شناسایی کاربر
+      _refreshNotes(); // آپدیت فوری نوت‌ها برای Stream
     }
 
     return user;
@@ -114,34 +114,26 @@ class NotesService {
     _notesStreamController.add([]);
   }
 
-  // ---------------- CRUD (اصلاح شده برای نمایش در Your Notes) ----------------
+  // ---------------- CRUD ----------------
 
   Future<void> addNote(String title, String content) async {
-    // اگر کاربر نال بود، یکبار دیگر تلاش برای شناسایی کاربر
     if (_currentUser == null) {
-      await _getDatabaseOrThrow();
+      // شناسایی کاربر با FirebaseAuth در صورت null بودن
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        throw Exception('User not logged in');
+      }
+      await getOrCreateUser(email: firebaseUser.email!);
     }
 
-    final user = _currentUser;
-    if (user == null) {
-      // اگر باز هم نال بود، خطا نده و از یک آیدی پیش‌فرض (مثل ۱) استفاده کن تا نوت ذخیره شود
-      // این کار باعث می‌شود مشکل Your Notes حل شود
-      final db = await _getDatabaseOrThrow();
-      await db.insert(notesTable, {
-        'user_id': 1,
-        'title': title,
-        'content': content,
-      });
-    } else {
-      final db = await _getDatabaseOrThrow();
-      await db.insert(notesTable, {
-        'user_id': user.id,
-        'title': title,
-        'content': content,
-      });
-    }
+    final db = await _getDatabaseOrThrow();
+    await db.insert(notesTable, {
+      'user_id': _currentUser!.id,
+      'title': title,
+      'content': content,
+    });
 
-    _refreshNotes(); // مهم: فراخوانی رفرش برای نمایش در لیست
+    _refreshNotes();
   }
 
   Future<void> updateNote(int id, String title, String content) async {
@@ -149,30 +141,39 @@ class NotesService {
     await db.update(
       notesTable,
       {'title': title, 'content': content},
-      where: 'id = ?', // برای راحتی ویرایش، شرط کاربر را برداشتم
-      whereArgs: [id],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, _currentUser!.id],
     );
-
     _refreshNotes();
   }
 
   Future<void> deleteNote(int id) async {
     final db = await _getDatabaseOrThrow();
-    await db.delete(notesTable, where: 'id = ?', whereArgs: [id]);
-
+    await db.delete(
+      notesTable,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, _currentUser!.id],
+    );
     _refreshNotes();
   }
 
   // ---------------- STREAM ----------------
   Stream<List<Note>> allNotes() async* {
     if (_currentUser == null) {
-      await _getDatabaseOrThrow();
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        yield [];
+        return;
+      }
+      await getOrCreateUser(email: firebaseUser.email!);
     }
 
     final db = await _getDatabaseOrThrow();
-
-    // نمایش تمام نوت‌ها (بدون فیلتر سختگیرانه) برای اطمینان از صحت کارکرد Your Notes
-    final result = await db.query(notesTable);
+    final result = await db.query(
+      notesTable,
+      where: 'user_id = ?',
+      whereArgs: [_currentUser!.id],
+    );
 
     final notes = result
         .map(
@@ -186,14 +187,21 @@ class NotesService {
         .toList();
 
     yield notes;
+
+    // ارسال داده‌ها به StreamController برای real-time UI
+    _notesStreamController.add(notes);
   }
 
   // ---------------- HELPERS ----------------
   void _refreshNotes() async {
-    final db = await _getDatabaseOrThrow();
+    if (_currentUser == null) return;
 
-    // دریافت نوت‌ها برای ارسال به StreamController
-    final result = await db.query(notesTable);
+    final db = await _getDatabaseOrThrow();
+    final result = await db.query(
+      notesTable,
+      where: 'user_id = ?',
+      whereArgs: [_currentUser!.id],
+    );
 
     final notes = result
         .map(

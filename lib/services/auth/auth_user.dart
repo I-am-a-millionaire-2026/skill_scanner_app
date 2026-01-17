@@ -3,14 +3,19 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class AuthUser {
-  final String email; // مرحله ۲: اضافه شدن فیلد ایمیل
+  final String id; // ✅ UID
+  final String email; // ✅ دیگر optional نیست
   final bool isEmailVerified;
 
-  const AuthUser({required this.email, required this.isEmailVerified});
+  const AuthUser({
+    required this.id,
+    required this.email,
+    required this.isEmailVerified,
+  });
 
-  // مرحله ۱: متدی که کاربر فایربیس را به کاربر مدل ما تبدیل می‌کند
   factory AuthUser.fromFirebase(User user) => AuthUser(
-    email: user.email!, // گرفتن ایمیل از فایربیس
+    id: user.uid, // ✅ گرفتن UID
+    email: user.email!, // ایمیل اجباری
     isEmailVerified: user.emailVerified,
   );
 }

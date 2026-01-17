@@ -6,19 +6,10 @@ class AuthService {
   AuthService._sharedInstance();
   factory AuthService.firebase() => _shared;
 
-  FirebaseAuth? _firebaseAuth;
-
-  // ✅ Just get the instance
-  Future<void> initializeOnce() async {
-    _firebaseAuth = FirebaseAuth.instance;
-  }
-
   AuthUser? get currentUser {
-    final user = _firebaseAuth?.currentUser;
-    if (user != null) {
-      return AuthUser(email: user.email!, isEmailVerified: user.emailVerified);
-    }
-    return null;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    return AuthUser.fromFirebase(user); // ✅ UID دارد
   }
 
   Future<void> logIn({required String email, required String password}) async {
@@ -44,8 +35,6 @@ class AuthService {
 
   Future<void> sendEmailVerification() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await user.sendEmailVerification();
-    }
+    await user?.sendEmailVerification();
   }
 }
