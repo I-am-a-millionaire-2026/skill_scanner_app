@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/services/auth/auth_service.dart';
-import 'package:skill_scanner/services/cloud/cloud_note.dart'; // برای جایگزینی Note قدیمی با CloudNote
-import 'package:skill_scanner/services/cloud/firebase_cloud_storage.dart'; // برای جایگزینی NotesService قدیمی
-import 'package:skill_scanner/views/notes/notes_list_view.dart'; // اگر لیست را در فایل جدا دارید
+import 'package:skill_scanner/services/cloud/cloud_note.dart';
+import 'package:skill_scanner/services/cloud/firebase_cloud_storage.dart';
+import 'package:skill_scanner/utilities/dialogs/logout_dialog.dart';
+import 'package:skill_scanner/views/notes/notes_list_view.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -13,34 +14,34 @@ class NotesView extends StatefulWidget {
 }
 
 class _NotesViewState extends State<NotesView> {
-  // تغییر از NotesService محلی به FirebaseCloudStorage ابری (دستور 21)
+  // ✅ دستور شماره 13: استفاده از سرویس FirebaseCloudStorage به جای سرویس قدیمی
   late final FirebaseCloudStorage _notesService;
 
-  // استفاده از ID کاربر برای فیلتر کردن نوت‌ها (دستور 30)
+  // ✅ دستور شماره 12: گرفتن مستقیم userId از AuthService برای اتصال امن به نوت‌ها
   String get userId => AuthService.firebase().currentUser!.id;
 
-  String get userEmail =>
-      AuthService.firebase().currentUser!.email; // ✅ دستور 11
+  String get userEmail => AuthService.firebase().currentUser!.email;
 
   @override
   void initState() {
-    _notesService = FirebaseCloudStorage(); // مقداردهی سرویس جدید (دستور 26)
+    _notesService = FirebaseCloudStorage(); // مقداردهی سرویس جدید
     super.initState();
   }
 
   void _logout() async {
-    await AuthService.firebase().logOut();
-    if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
+    final shouldLogout = await showLogOutDialog(context);
+    if (shouldLogout) {
+      await AuthService.firebase().logOut();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
+    }
   }
 
   void _openCreateNote() {
-    // اصلاح ناوبری به صورت Named Route برای هماهنگی با آرگومان‌ها
     Navigator.of(context).pushNamed(createOrUpdateNoteRoute);
   }
 
   void _editNote(CloudNote note) {
-    // اصلاح بخش ارور دار: نوت به عنوان argument فرستاده می‌شود (رفع ارور تصویر شما)
     Navigator.of(context).pushNamed(createOrUpdateNoteRoute, arguments: note);
   }
 
@@ -54,8 +55,9 @@ class _NotesViewState extends State<NotesView> {
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
-      // استفاده از Stream برای دریافت نوت‌های ابری کاربر (دستور 30)
+      // ✅ دستور شماره 11: حذف FutureBuilder اضافی؛ مستقیماً از StreamBuilder استفاده می‌کنیم
       body: StreamBuilder(
+        // استفاده از سرویس ابری برای دریافت لحظه‌ای نوت‌ها بر اساس userId
         stream: _notesService.allNotes(ownerUserId: userId),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
@@ -63,29 +65,13 @@ class _NotesViewState extends State<NotesView> {
             case ConnectionState.active:
               if (snapshot.hasData) {
                 final allNotes = snapshot.data as Iterable<CloudNote>;
-
-                // نمایش نوت‌ها (اگر فایل NotesListView را ندارید، لیست را همینجا بسازید)
-                return ListView.builder(
-                  itemCount: allNotes.length,
-                  itemBuilder: (context, index) {
-                    final note = allNotes.elementAt(index);
-                    return ListTile(
-                      title: Text(
-                        note.text,
-                        maxLines: 1,
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onTap: () => _editNote(note),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () async {
-                          await _notesService.deleteNote(
-                            documentId: note.documentId,
-                          );
-                        },
-                      ),
-                    );
+                return NotesListView(
+                  notes: allNotes,
+                  onDeleteNote: (note) async {
+                    await _notesService.deleteNote(documentId: note.documentId);
+                  },
+                  onTap: (note) {
+                    _editNote(note);
                   },
                 );
               } else {

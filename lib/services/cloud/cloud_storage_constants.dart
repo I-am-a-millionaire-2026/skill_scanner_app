@@ -1,2 +1,4 @@
-// ثابت‌های مربوط به Cloud Firestore
 const notesCollection = 'notes';
+const ownerUserIdFieldName = 'ownerUserId';
+const textFieldName = 'text';
+const createdAtFieldName = 'createdAt';

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:skill_scanner/services/cloud/cloud_storage_constants.dart';
 
 @immutable
 class CloudNote {
@@ -16,15 +17,15 @@ class CloudNote {
 
   CloudNote.fromMap(Map<String, dynamic> map, String documentId)
     : documentId = documentId,
-      ownerUserId = map['ownerUserId'] as String,
-      text = map['text'] as String,
-      createdAt = DateTime.parse(map['createdAt'] as String);
+      ownerUserId = map[ownerUserIdFieldName] as String,
+      text = map[textFieldName] as String,
+      createdAt = DateTime.parse(map[createdAtFieldName] as String);
 
   Map<String, dynamic> toMap() {
     return {
-      'ownerUserId': ownerUserId,
-      'text': text,
-      'createdAt': createdAt.toIso8601String(),
+      ownerUserIdFieldName: ownerUserId,
+      textFieldName: text,
+      createdAtFieldName: createdAt.toIso8601String(),
     };
   }
 }

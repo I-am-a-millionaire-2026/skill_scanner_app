@@ -1,21 +1,26 @@
-class DatabaseAlreadyOpenException implements Exception {}
+// // OLD CODE - COMMENTED OUT AS PER INSTRUCTION
+// // These exceptions are no longer used since we migrated to Cloud Storage Exceptions
 
-class UnableToGetDocumentsDirectory implements Exception {}
+// /*
+// class DatabaseAlreadyOpenException implements Exception {}
 
-class DatabaseIsNotOpen implements Exception {}
+// class UnableToGetDocumentsDirectory implements Exception {}
 
-class CouldNotDeleteUser implements Exception {}
+// class DatabaseIsNotOpen implements Exception {}
 
-class UserAlreadyExists implements Exception {}
+// class CouldNotDeleteUser implements Exception {}
 
-class CouldNotFindUser implements Exception {}
+// class UserAlreadyExists implements Exception {}
 
-class CouldNotDeleteNote implements Exception {}
+// class CouldNotFindUser implements Exception {}
 
-class CouldNotFindNote implements Exception {}
+// class CouldNotDeleteNote implements Exception {}
 
-class CouldNotUpdateNote implements Exception {}
+// class CouldNotFindNote implements Exception {}
 
-class UserShouldBeSetBeforeReadingAllNotes implements Exception {
-  const UserShouldBeSetBeforeReadingAllNotes();
-}
+// class CouldNotUpdateNote implements Exception {}
+
+// class UserShouldBeSetBeforeReadingAllNotes implements Exception {
+//   const UserShouldBeSetBeforeReadingAllNotes();
+// }
+// */

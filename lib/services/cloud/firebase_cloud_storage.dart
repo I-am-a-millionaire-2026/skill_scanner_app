@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'cloud_note.dart';
-import 'cloud_storage_exceptions.dart';
-import 'cloud_storage_constants.dart';
+import 'package:skill_scanner/services/cloud/cloud_note.dart';
+import 'package:skill_scanner/services/cloud/cloud_storage_exceptions.dart';
+import 'package:skill_scanner/services/cloud/cloud_storage_constants.dart';
 
 class FirebaseCloudStorage {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -19,9 +19,9 @@ class FirebaseCloudStorage {
   }) async {
     try {
       final documentRef = await _firestore.collection(notesCollection).add({
-        'ownerUserId': ownerUserId,
-        'text': text,
-        'createdAt': DateTime.now().toIso8601String(),
+        ownerUserIdFieldName: ownerUserId,
+        textFieldName: text,
+        createdAtFieldName: DateTime.now().toIso8601String(),
       });
 
       final snapshot = await documentRef.get();
@@ -36,7 +36,7 @@ class FirebaseCloudStorage {
     try {
       final querySnapshot = await _firestore
           .collection(notesCollection)
-          .where('ownerUserId', isEqualTo: ownerUserId)
+          .where(ownerUserIdFieldName, isEqualTo: ownerUserId)
           .get();
 
       return querySnapshot.docs.map(
@@ -49,19 +49,14 @@ class FirebaseCloudStorage {
 
   // Stream real-time نوت‌های کاربر
   Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) {
-    try {
-      return _firestore
-          .collection(notesCollection)
-          .where('ownerUserId', isEqualTo: ownerUserId)
-          .snapshots()
-          .map(
-            (snapshot) => snapshot.docs.map(
-              (doc) => CloudNote.fromMap(doc.data(), doc.id),
-            ),
-          );
-    } catch (_) {
-      throw CouldNotGetAllNotesException();
-    }
+    return _firestore
+        .collection(notesCollection)
+        .where(ownerUserIdFieldName, isEqualTo: ownerUserId)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => CloudNote.fromMap(doc.data(), doc.id)),
+        );
   }
 
   // بروزرسانی نوت
@@ -71,7 +66,7 @@ class FirebaseCloudStorage {
   }) async {
     try {
       await _firestore.collection(notesCollection).doc(documentId).update({
-        'text': text,
+        textFieldName: text,
       });
     } catch (_) {
       throw CouldNotUpdateNoteException();

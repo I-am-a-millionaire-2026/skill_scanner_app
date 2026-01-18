@@ -1,3 +1,8 @@
+// // OLD CODE - COMMENTED OUT AS PER INSTRUCTION
+// // This entire file is deactivated to migrate to Cloud Storage (Firestore).
+// // Everything is now handled by lib/services/cloud/firebase_cloud_storage.dart
+
+/*
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -67,7 +72,6 @@ class NotesService {
       },
     );
 
-    // وقتی دیتابیس باز شد، currentUser رو با FirebaseAuth مقداردهی کن
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser != null && firebaseUser.email != null) {
       await getOrCreateUser(email: firebaseUser.email!);
@@ -103,7 +107,7 @@ class NotesService {
 
     if (setAsCurrentUser) {
       _currentUser = user;
-      _refreshNotes(); // آپدیت فوری نوت‌ها برای Stream
+      _refreshNotes();
     }
 
     return user;
@@ -118,7 +122,6 @@ class NotesService {
 
   Future<void> addNote(String title, String content) async {
     if (_currentUser == null) {
-      // شناسایی کاربر با FirebaseAuth در صورت null بودن
       final firebaseUser = FirebaseAuth.instance.currentUser;
       if (firebaseUser == null || firebaseUser.email == null) {
         throw Exception('User not logged in');
@@ -187,8 +190,6 @@ class NotesService {
         .toList();
 
     yield notes;
-
-    // ارسال داده‌ها به StreamController برای real-time UI
     _notesStreamController.add(notes);
   }
 
@@ -217,3 +218,4 @@ class NotesService {
     _notesStreamController.add(notes);
   }
 }
+*/

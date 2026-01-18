@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:skill_scanner/services/cloud/cloud_note.dart'; // ✅ اضافه شدن برای استفاده از مدل کلود
 
-typedef NoteTapCallback = void Function(int index);
-typedef NoteDeleteCallback = void Function(int index);
+// اصلاح تایپ‌دف‌ها برای کار با شیء نوت به جای ایندکس عددی
+typedef NoteCallback = void Function(CloudNote note);
 
 class NotesListView extends StatelessWidget {
-  final List<String> notes;
-  final NoteDeleteCallback onDelete;
-  final NoteTapCallback onTap;
+  // ✅ دستور شماره 10: استفاده از Iterable به جای List و CloudNote به جای String
+  final Iterable<CloudNote> notes;
+  final NoteCallback onDeleteNote;
+  final NoteCallback onTap;
 
   const NotesListView({
     super.key,
     required this.notes,
-    required this.onDelete,
+    required this.onDeleteNote,
     required this.onTap,
   });
 
@@ -24,14 +26,21 @@ class NotesListView extends StatelessWidget {
     return ListView.builder(
       itemCount: notes.length,
       itemBuilder: (context, index) {
-        final note = notes[index];
+        // ✅ دسترسی به نوت در Iterable با استفاده از elementAt
+        final note = notes.elementAt(index);
+
         return ListTile(
-          title: Text(note),
+          onTap: () => onTap(note), // ارسال کل نوت به تابع onTap
+          title: Text(
+            note.text, // نمایش متن اصلی نوت از کلود
+            maxLines: 1,
+            softWrap: true,
+            overflow: TextOverflow.ellipsis,
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: () => onDelete(index),
+            onPressed: () => onDeleteNote(note), // ارسال کل نوت برای حذف
           ),
-          onTap: () => onTap(index),
         );
       },
     );
