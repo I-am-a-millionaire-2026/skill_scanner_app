@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:skill_scanner/services/cloud/cloud_note.dart'; // ✅ اضافه شدن برای استفاده از مدل کلود
+import 'package:skill_scanner/services/cloud/cloud_note.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:skill_scanner/utilities/dialogs/cannot_share_empty_note_dialog.dart'; // ✅ اضافه شد
 
-// اصلاح تایپ‌دف‌ها برای کار با شیء نوت به جای ایندکس عددی
 typedef NoteCallback = void Function(CloudNote note);
 
 class NotesListView extends StatelessWidget {
-  // ✅ دستور شماره 10: استفاده از Iterable به جای List و CloudNote به جای String
   final Iterable<CloudNote> notes;
   final NoteCallback onDeleteNote;
   final NoteCallback onTap;
@@ -26,20 +26,35 @@ class NotesListView extends StatelessWidget {
     return ListView.builder(
       itemCount: notes.length,
       itemBuilder: (context, index) {
-        // ✅ دسترسی به نوت در Iterable با استفاده از elementAt
         final note = notes.elementAt(index);
 
         return ListTile(
-          onTap: () => onTap(note), // ارسال کل نوت به تابع onTap
+          onTap: () => onTap(note),
           title: Text(
-            note.text, // نمایش متن اصلی نوت از کلود
+            note.text,
             maxLines: 1,
             softWrap: true,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => onDeleteNote(note), // ارسال کل نوت برای حذف
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () async {
+                  // ✅ بررسی نوت خالی در لیست
+                  if (note.text.isEmpty) {
+                    await showCannotShareEmptyNoteDialog(context);
+                  } else {
+                    Share.share(note.text);
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => onDeleteNote(note),
+              ),
+            ],
           ),
         );
       },

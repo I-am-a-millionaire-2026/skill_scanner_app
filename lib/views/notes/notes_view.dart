@@ -14,50 +14,48 @@ class NotesView extends StatefulWidget {
 }
 
 class _NotesViewState extends State<NotesView> {
-  // ✅ دستور شماره 13: استفاده از سرویس FirebaseCloudStorage به جای سرویس قدیمی
+  // دستور 13: استفاده از سرویس جدید
   late final FirebaseCloudStorage _notesService;
 
-  // ✅ دستور شماره 12: گرفتن مستقیم userId از AuthService برای اتصال امن به نوت‌ها
+  // دستور 12: استفاده از ID به جای ایمیل
   String get userId => AuthService.firebase().currentUser!.id;
-
   String get userEmail => AuthService.firebase().currentUser!.email;
 
   @override
   void initState() {
-    _notesService = FirebaseCloudStorage(); // مقداردهی سرویس جدید
+    _notesService = FirebaseCloudStorage();
     super.initState();
-  }
-
-  void _logout() async {
-    final shouldLogout = await showLogOutDialog(context);
-    if (shouldLogout) {
-      await AuthService.firebase().logOut();
-      if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
-    }
-  }
-
-  void _openCreateNote() {
-    Navigator.of(context).pushNamed(createOrUpdateNoteRoute);
-  }
-
-  void _editNote(CloudNote note) {
-    Navigator.of(context).pushNamed(createOrUpdateNoteRoute, arguments: note);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Your Notes ($userEmail)'),
+        title: const Text('Your Notes'),
         actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _openCreateNote),
-          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed(createOrUpdateNoteRoute);
+            },
+            icon: const Icon(Icons.add),
+          ),
+          IconButton(
+            onPressed: () async {
+              final shouldLogout = await showLogOutDialog(context);
+              if (shouldLogout) {
+                await AuthService.firebase().logOut();
+                if (!mounted) return;
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(loginRoute, (_) => false);
+              }
+            },
+            icon: const Icon(Icons.logout),
+          ),
         ],
       ),
-      // ✅ دستور شماره 11: حذف FutureBuilder اضافی؛ مستقیماً از StreamBuilder استفاده می‌کنیم
+      // دستور 11: حذف FutureBuilder و استفاده مستقیم از Stream
       body: StreamBuilder(
-        // استفاده از سرویس ابری برای دریافت لحظه‌ای نوت‌ها بر اساس userId
         stream: _notesService.allNotes(ownerUserId: userId),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
@@ -71,7 +69,9 @@ class _NotesViewState extends State<NotesView> {
                     await _notesService.deleteNote(documentId: note.documentId);
                   },
                   onTap: (note) {
-                    _editNote(note);
+                    Navigator.of(
+                      context,
+                    ).pushNamed(createOrUpdateNoteRoute, arguments: note);
                   },
                 );
               } else {
