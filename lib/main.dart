@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/constants/routes.dart';
+import 'package:skill_scanner/services/auth/firebase_auth_provider.dart'; // اضافه شده برای رفع خطا
+import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
 import 'package:skill_scanner/views/login_view.dart';
 import 'package:skill_scanner/views/register_view.dart';
 import 'package:skill_scanner/views/verify_email_view.dart';
@@ -25,8 +29,11 @@ void main() async {
   }
 
   runApp(
-    // 5️⃣ استفاده از BlocProvider برای تزریق Bloc به سراسر برنامه (بند 5)
-    BlocProvider(create: (context) => CounterBloc(), child: const MyApp()),
+    // 1️⃣ تزریق AuthBloc به سراسر برنامه با استفاده از پرووایدری که خطا ندهد (بند 9)
+    BlocProvider<AuthBloc>(
+      create: (context) => AuthBloc(FirebaseAuthProvider()),
+      child: const MyApp(),
+    ),
   );
 }
 
@@ -38,154 +45,45 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Skill Scanner',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: loginRoute, // ✅ پایداری: مسیر شروع همچنان لاگین است
+      // 2️⃣ استفاده از HomePage به عنوان نقطه ورود برای مدیریت وضعیت‌ها توسط BlocBuilder
+      home: const HomePage(),
       routes: {
         loginRoute: (context) => const LoginView(),
         registerRoute: (context) => const RegisterView(),
         notesRoute: (context) => const NotesView(),
         verifyEmailRoute: (context) => const VerifyEmailView(),
         createOrUpdateNoteRoute: (context) => const CreateUpdateNoteView(),
-        '/bloc-home': (context) => const HomePage(),
       },
     );
   }
 }
 
-// 1️⃣1️⃣ صفحه اصلی جدید (بند 11)
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  // 1️⃣9️⃣ کنترلر متن (بند 19)
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    _controller = TextEditingController();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bloc Main UI')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // 8️⃣ و 2️⃣0️⃣ استفاده از BlocConsumer در بدنه اصلی (بند 8 و 20)
-            BlocConsumer<CounterBloc, CounterState>(
-              // 6️⃣ بخش Listener: برای کارهای غیر بصری مثل اسنک‌بار (بند 6)
-              listener: (context, state) {
-                if (state is CounterStateInvalidNumber) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Invalid input: ${state.invalidValue}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              // 7️⃣ بخش Builder: برای ساختن UI بر اساس استیت جدید (بند 7)
-              builder: (context, state) {
-                return Column(
-                  children: [
-                    Text(
-                      'Counter Value: ${state.value}',
-                      style: const TextStyle(fontSize: 30),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter a number...',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            // 2️⃣0️⃣ بخش دکمه‌ها برای ارسال Event (بند 20)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    // ارسال رویداد کاهش
-                    context.read<CounterBloc>().add(const DecrementEvent());
-                  },
-                  child: const Text('- Decrement'),
-                ),
-                const SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    // ارسال رویداد افزایش
-                    context.read<CounterBloc>().add(const IncrementEvent());
-                  },
-                  child: const Text('+ Increment'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+    // ارسال رویداد اولیه برای بررسی وضعیت لاگین کاربر به محض اجرای برنامه
+    context.read<AuthBloc>().add(const AuthEventInitialize());
 
-// --- 🟦 بخش منطق Bloc (بدون تغییر برای حفظ پایداری) ---
-
-@immutable
-abstract class CounterEvent {
-  const CounterEvent();
-}
-
-class IncrementEvent extends CounterEvent {
-  const IncrementEvent();
-}
-
-class DecrementEvent extends CounterEvent {
-  const DecrementEvent();
-}
-
-@immutable
-abstract class CounterState {
-  final int value;
-  const CounterState(this.value);
-}
-
-class CounterStateValid extends CounterState {
-  const CounterStateValid(int value) : super(value);
-}
-
-class CounterStateInvalidNumber extends CounterState {
-  final String invalidValue;
-  const CounterStateInvalidNumber({
-    required int previousValue,
-    required this.invalidValue,
-  }) : super(previousValue);
-}
-
-class CounterBloc extends Bloc<CounterEvent, CounterState> {
-  CounterBloc() : super(const CounterStateValid(0)) {
-    on<IncrementEvent>(
-      (event, emit) => emit(CounterStateValid(state.value + 1)),
-    );
-    on<DecrementEvent>(
-      (event, emit) => emit(CounterStateValid(state.value - 1)),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is AuthStateLoggedIn) {
+          // ✅ پایداری: اگر کاربر لاگین است، مستقیماً نوت‌ها را ببیند
+          return const NotesView();
+        } else if (state is AuthStateNeedsVerification) {
+          // اگر ایمیل تایید نشده است
+          return const VerifyEmailView();
+        } else if (state is AuthStateLoggedOut) {
+          // اگر خارج شده است، صفحه لاگین نمایش داده شود
+          return const LoginView();
+        } else {
+          // در وضعیت Loading، یک Spinner نمایش داده می‌شود
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+      },
     );
   }
 }
