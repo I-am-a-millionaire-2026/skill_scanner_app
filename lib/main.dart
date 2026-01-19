@@ -29,7 +29,7 @@ void main() async {
   }
 
   runApp(
-    // 1️⃣ Injecting the AuthBloc with the Firebase provider globally
+    // تزریق AuthBloc به کل برنامه
     BlocProvider<AuthBloc>(
       create: (context) => AuthBloc(FirebaseAuthProvider()),
       child: const MyApp(),
@@ -44,14 +44,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Skill Scanner',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      // 2️⃣ HomePage is the entry point that reacts to AuthState changes
+      // نقطه شروع برنامه HomePage است
       home: const HomePage(),
+      // دستور ۳۶: حذف مسیرهای اضافی و نگه داشتن مسیر نوت
       routes: {
-        loginRoute: (context) => const LoginView(),
-        registerRoute: (context) => const RegisterView(),
-        notesRoute: (context) => const NotesView(),
-        verifyEmailRoute: (context) => const VerifyEmailView(),
         createOrUpdateNoteRoute: (context) => const CreateUpdateNoteView(),
       },
     );
@@ -63,23 +61,25 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check initial auth status immediately upon app launch
+    // مقداردهی اولیه احراز هویت در شروع برنامه
     context.read<AuthBloc>().add(const AuthEventInitialize());
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthStateLoggedIn) {
-          // ✅ User is logged in, show their notes
+          // کاربر لاگین است -> نمایش یور نوت
           return const NotesView();
         } else if (state is AuthStateNeedsVerification) {
-          // User exists but email isn't verified
+          // نیاز به تایید ایمیل
           return const VerifyEmailView();
         } else if (state is AuthStateLoggedOut) {
-          // ✅ User is logged out (either naturally or due to an error)
-          // The LoginView itself uses BlocListener to show errors if needed.
+          // دستور ۳۴: کاربر خارج شده یا خطایی رخ داده -> نمایش صفحه لاگین
           return const LoginView();
+        } else if (state is AuthStateRegistering) {
+          // دستور ۳۷: نمایش صفحه ثبت‌نام بر اساس وضعیت بلوک
+          return const RegisterView();
         } else {
-          // This covers AuthStateLoading or any uninitialized state
+          // وضعیت در حال بارگذاری اولیه
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

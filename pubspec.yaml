@@ -26,6 +26,7 @@ dependencies:
   # این دو خط، "زبان مشترک" بین منطق و UI شما را ایجاد می‌کنند
   bloc: ^8.1.4
   flutter_bloc: ^8.1.6
+  equatable: ^2.0.8
 
 dev_dependencies:
   flutter_test:

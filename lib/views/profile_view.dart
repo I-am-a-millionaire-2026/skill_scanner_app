@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../constants/routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
+import 'package:skill_scanner/utilities/dialogs/logout_dialog.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -11,13 +13,15 @@ class ProfileView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Skill Scanner'),
         actions: [
-          // دکمه خروج از حساب کاربری
+          // دکمه خروج از حساب کاربری - مطابق با مرحله ۱ دستورات جدید
           IconButton(
             onPressed: () async {
               final shouldLogout = await showLogOutDialog(context);
               if (shouldLogout) {
-                await FirebaseAuth.instance.signOut();
-                // بعد از خروج، AuthGate خودکار شما را به صفحه Login می‌برد
+                // استفاده از Bloc به جای FirebaseAuth.instance.signOut مستقیم
+                if (context.mounted) {
+                  context.read<AuthBloc>().add(const AuthEventLogOut());
+                }
               }
             },
             icon: const Icon(Icons.logout),
@@ -27,7 +31,7 @@ class ProfileView extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // بخش هدر پروفایل
+            // بخش هدر پروفایل (حفظ شده از کدهای قبلی شما)
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: CircleAvatar(
@@ -40,7 +44,8 @@ class ProfileView extends StatelessWidget {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            // لیست فعالیت‌ها
+
+            // لیست فعالیت‌ها (حفظ شده از کدهای قبلی شما)
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -62,7 +67,7 @@ class ProfileView extends StatelessWidget {
   }
 }
 
-// تابع نمایش دیالوگ تایید خروج
+// تابع نمایش دیالوگ تایید خروج (حفظ شده از کدهای قبلی شما)
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,

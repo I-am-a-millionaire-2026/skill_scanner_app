@@ -1,35 +1,58 @@
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:skill_scanner/services/auth/auth_user.dart';
+import 'package:equatable/equatable.dart';
 
 @immutable
-abstract class AuthState {
+abstract class AuthState extends Equatable {
   final bool isLoading;
   final String? loadingText;
+
   const AuthState({
     required this.isLoading,
     this.loadingText = 'Please wait a moment',
   });
+
+  @override
+  List<Object?> get props => [isLoading, loadingText];
 }
 
-// وضعیت لودینگ کلی
-class AuthStateLoading extends AuthState {
-  const AuthStateLoading() : super(isLoading: true);
+class AuthStateUninitialized extends AuthState {
+  const AuthStateUninitialized({required super.isLoading});
 }
 
-// وضعیت ورود موفق
+// دستور شماره 8: اضافه شدن وضعیت ثبت‌نام
+class AuthStateRegistering extends AuthState {
+  final Exception? exception;
+  const AuthStateRegistering({
+    required this.exception,
+    required super.isLoading,
+  });
+
+  @override
+  List<Object?> get props => [exception, isLoading];
+}
+
 class AuthStateLoggedIn extends AuthState {
   final AuthUser user;
-  const AuthStateLoggedIn(this.user) : super(isLoading: false);
+  const AuthStateLoggedIn({required this.user, required super.isLoading});
+
+  @override
+  List<Object?> get props => [user, isLoading];
 }
 
-// وضعیت نیاز به تایید ایمیل
 class AuthStateNeedsVerification extends AuthState {
-  const AuthStateNeedsVerification() : super(isLoading: false);
+  const AuthStateNeedsVerification({required super.isLoading});
 }
 
-// وضعیت خارج شده (ترکیب شده با مدیریت خطا طبق دستور 1)
-class AuthStateLoggedOut extends AuthState {
+// دستور شماره 9، 10 و 12: استفاده از Equatable و مدیریت isLoading و Exception
+class AuthStateLoggedOut extends AuthState with EquatableMixin {
   final Exception? exception;
-  const AuthStateLoggedOut({required this.exception, required bool isLoading})
-    : super(isLoading: isLoading);
+  const AuthStateLoggedOut({
+    required this.exception,
+    required super.isLoading,
+    super.loadingText,
+  });
+
+  @override
+  List<Object?> get props => [exception, isLoading];
 }

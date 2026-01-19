@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
 import 'package:skill_scanner/utilities/dialogs/error_dialog.dart';
+import 'package:skill_scanner/utilities/dialogs/loading_dialog.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -17,6 +17,7 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   late final TextEditingController _email;
   late final TextEditingController _password;
+  CloseDialog? _closeDialogHandle;
 
   @override
   void initState() {
@@ -34,11 +35,19 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    // 5️⃣ & 8️⃣ استفاده از Listener برای تست رفتار برنامه و نمایش خطاها
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
+        if (state.isLoading) {
+          _closeDialogHandle = showLoadingDialog(
+            context: context,
+            text: state.loadingText ?? 'Please wait...',
+          );
+        } else {
+          _closeDialogHandle?.call();
+          _closeDialogHandle = null;
+        }
+
         if (state is AuthStateLoggedOut) {
-          // 6️⃣ & 8️⃣ بررسی انواع Exception برای اطمینان از صحت معماری در تست
           if (state.exception is UserNotFoundAuthException) {
             await showErrorDialog(context, 'User not found');
           } else if (state.exception is WrongPasswordAuthException) {
@@ -72,21 +81,19 @@ class _LoginViewState extends State<LoginView> {
                   hintText: 'Enter your password here',
                 ),
               ),
-              // 7️⃣ دکمه فقط Event ارسال می‌کند تا معماری در تست شماره 8 قابل ارزیابی باشد
               TextButton(
                 onPressed: () async {
                   final email = _email.text.trim();
                   final password = _password.text;
-                  // Dispatch کردن رویداد بدون منطق اضافی در UI
                   context.read<AuthBloc>().add(AuthEventLogIn(email, password));
                 },
                 child: const Text('Login'),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil(registerRoute, (route) => false);
+                  // دستور ۳۷: فقط ایونت تغییر وضعیت را می‌فرستیم
+                  // BlocBuilder در main.dart به صورت خودکار RegisterView را نشان می‌دهد
+                  context.read<AuthBloc>().add(const AuthEventShouldRegister());
                 },
                 child: const Text('Not registered yet? Register here!'),
               ),

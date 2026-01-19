@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:skill_scanner/constants/routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
-import 'package:skill_scanner/services/auth/auth_service.dart';
-// ایمپورت صحیح دیالوگ برای رفع ارور showErrorDialog
+import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
 import 'package:skill_scanner/utilities/dialogs/error_dialog.dart';
+import 'package:skill_scanner/utilities/dialogs/loading_dialog.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -13,14 +15,13 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  late final TextEditingController _userName;
   late final TextEditingController _email;
   late final TextEditingController _password;
   late final TextEditingController _confirmPassword;
+  CloseDialog? _closeDialogHandle;
 
   @override
   void initState() {
-    _userName = TextEditingController();
     _email = TextEditingController();
     _password = TextEditingController();
     _confirmPassword = TextEditingController();
@@ -29,7 +30,6 @@ class _RegisterViewState extends State<RegisterView> {
 
   @override
   void dispose() {
-    _userName.dispose();
     _email.dispose();
     _password.dispose();
     _confirmPassword.dispose();
@@ -38,115 +38,118 @@ class _RegisterViewState extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212), // دیزاین مشکی که ساخته بودی
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 80),
-            const Icon(
-              Icons.person_add_outlined,
-              size: 80,
-              color: Colors.blueAccent,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Create Account',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) async {
+        // مدیریت لودینگ
+        if (state.isLoading) {
+          _closeDialogHandle = showLoadingDialog(
+            context: context,
+            text: state.loadingText ?? 'Please wait...',
+          );
+        } else {
+          _closeDialogHandle?.call();
+          _closeDialogHandle = null;
+        }
+
+        // مدیریت خطاها در ثبت‌نام
+        if (state is AuthStateRegistering) {
+          if (state.exception is WeakPasswordAuthException) {
+            await showErrorDialog(context, 'Weak password');
+          } else if (state.exception is EmailAlreadyInUseAuthException) {
+            await showErrorDialog(context, 'Email is already in use');
+          } else if (state.exception is GenericAuthException) {
+            await showErrorDialog(context, 'Failed to register');
+          } else if (state.exception is InvalidEmailAuthException) {
+            await showErrorDialog(context, 'Invalid email');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 80),
+              const Icon(
+                Icons.person_add_outlined,
+                size: 80,
+                color: Colors.blueAccent,
               ),
-            ),
-            const SizedBox(height: 40),
-            _buildTextField(_userName, 'Your Name', Icons.person_outline),
-            const SizedBox(height: 15),
-            _buildTextField(_email, 'Email Address', Icons.email_outlined),
-            const SizedBox(height: 15),
-            _buildTextField(
-              _password,
-              'Password',
-              Icons.lock_outline,
-              isPassword: true,
-            ),
-            const SizedBox(height: 15),
-            _buildTextField(
-              _confirmPassword,
-              'Confirm Password',
-              Icons.lock_reset_outlined,
-              isPassword: true,
-            ),
-            const SizedBox(height: 35),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+              const SizedBox(height: 20),
+              const Text(
+                'Create Account',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 40),
+              _buildTextField(_email, 'Email Address', Icons.email_outlined),
+              const SizedBox(height: 15),
+              _buildTextField(
+                _password,
+                'Password',
+                Icons.lock_outline,
+                isPassword: true,
+              ),
+              const SizedBox(height: 15),
+              _buildTextField(
+                _confirmPassword,
+                'Confirm Password',
+                Icons.lock_reset_outlined,
+                isPassword: true,
+              ),
+              const SizedBox(height: 35),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final email = _email.text.trim();
+                    final password = _password.text;
+                    final confirm = _confirmPassword.text;
+
+                    if (password != confirm) {
+                      await showErrorDialog(context, 'Passwords do not match!');
+                      return;
+                    }
+                    // ثبت‌نام از طریق ارسال ایونت به Bloc
+                    context.read<AuthBloc>().add(
+                      AuthEventRegister(email, password),
+                    );
+                  },
+                  child: const Text(
+                    'Sign Up',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
-                onPressed: () async {
-                  final email = _email.text.trim();
-                  final password = _password.text;
-                  final confirm = _confirmPassword.text;
-
-                  if (password != confirm) {
-                    if (mounted) {
-                      await showErrorDialog(context, 'Passwords do not match!');
-                    }
-                    return;
-                  }
-
-                  try {
-                    await AuthService.firebase().createUser(
-                      email: email,
-                      password: password,
-                    );
-                    await AuthService.firebase().sendEmailVerification();
-                    if (mounted) {
-                      Navigator.of(context).pushNamed(verifyEmailRoute);
-                    }
-                  } on WeakPasswordAuthException {
-                    if (mounted)
-                      await showErrorDialog(context, 'Weak password');
-                  } on EmailAlreadyInUseAuthException {
-                    if (mounted)
-                      await showErrorDialog(context, 'Email already in use');
-                  } on GenericAuthException {
-                    if (mounted)
-                      await showErrorDialog(context, 'Registration error');
-                  } catch (e) {
-                    if (mounted) await showErrorDialog(context, e.toString());
-                  }
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  // دستور ۲۴: بازگشت به لاگین با ارسال ایونت LogOut به بلوک
+                  context.read<AuthBloc>().add(const AuthEventLogOut());
                 },
                 child: const Text(
-                  'Sign Up',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  'Already have an account? Login',
+                  style: TextStyle(color: Colors.blueAccent),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil(loginRoute, (route) => false);
-              },
-              child: const Text(
-                'Already have an account? Login',
-                style: TextStyle(color: Colors.blueAccent),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // متد کمکی برای حفظ دیزاین فیلدهای متنی تو
   Widget _buildTextField(
     TextEditingController controller,
     String hint,
