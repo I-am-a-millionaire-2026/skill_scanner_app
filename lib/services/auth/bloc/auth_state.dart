@@ -3,27 +3,33 @@ import 'package:skill_scanner/services/auth/auth_user.dart';
 
 @immutable
 abstract class AuthState {
-  const AuthState();
+  final bool isLoading;
+  final String? loadingText;
+  const AuthState({
+    required this.isLoading,
+    this.loadingText = 'Please wait a moment',
+  });
 }
 
-// 1️⃣ Loading State: نشان‌دهنده در حال بارگذاری بودن (مثلاً موقع زدن دکمه لاگین)
+// وضعیت لودینگ کلی
 class AuthStateLoading extends AuthState {
-  const AuthStateLoading();
+  const AuthStateLoading() : super(isLoading: true);
 }
 
-// 2️⃣ LoggedIn State: کاربر با موفقیت وارد شده است
+// وضعیت ورود موفق
 class AuthStateLoggedIn extends AuthState {
   final AuthUser user;
-  const AuthStateLoggedIn(this.user);
+  const AuthStateLoggedIn(this.user) : super(isLoading: false);
 }
 
-// 3️⃣ NeedsVerification State: کاربر وارد شده اما ایمیلش هنوز تایید نشده است
+// وضعیت نیاز به تایید ایمیل
 class AuthStateNeedsVerification extends AuthState {
-  const AuthStateNeedsVerification();
+  const AuthStateNeedsVerification() : super(isLoading: false);
 }
 
-// 4️⃣ LoggedOut State: کاربر خارج شده است (همراه با مدیریت خطاهای احتمالی)
+// وضعیت خارج شده (ترکیب شده با مدیریت خطا طبق دستور 1)
 class AuthStateLoggedOut extends AuthState {
   final Exception? exception;
-  const AuthStateLoggedOut(this.exception);
+  const AuthStateLoggedOut({required this.exception, required bool isLoading})
+    : super(isLoading: isLoading);
 }

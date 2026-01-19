@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/constants/routes.dart';
-import 'package:skill_scanner/services/auth/firebase_auth_provider.dart'; // اضافه شده برای رفع خطا
+import 'package:skill_scanner/services/auth/firebase_auth_provider.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
@@ -29,7 +29,7 @@ void main() async {
   }
 
   runApp(
-    // 1️⃣ تزریق AuthBloc به سراسر برنامه با استفاده از پرووایدری که خطا ندهد (بند 9)
+    // 1️⃣ Injecting the AuthBloc with the Firebase provider globally
     BlocProvider<AuthBloc>(
       create: (context) => AuthBloc(FirebaseAuthProvider()),
       child: const MyApp(),
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Skill Scanner',
       theme: ThemeData(primarySwatch: Colors.blue),
-      // 2️⃣ استفاده از HomePage به عنوان نقطه ورود برای مدیریت وضعیت‌ها توسط BlocBuilder
+      // 2️⃣ HomePage is the entry point that reacts to AuthState changes
       home: const HomePage(),
       routes: {
         loginRoute: (context) => const LoginView(),
@@ -63,22 +63,23 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ارسال رویداد اولیه برای بررسی وضعیت لاگین کاربر به محض اجرای برنامه
+    // Check initial auth status immediately upon app launch
     context.read<AuthBloc>().add(const AuthEventInitialize());
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthStateLoggedIn) {
-          // ✅ پایداری: اگر کاربر لاگین است، مستقیماً نوت‌ها را ببیند
+          // ✅ User is logged in, show their notes
           return const NotesView();
         } else if (state is AuthStateNeedsVerification) {
-          // اگر ایمیل تایید نشده است
+          // User exists but email isn't verified
           return const VerifyEmailView();
         } else if (state is AuthStateLoggedOut) {
-          // اگر خارج شده است، صفحه لاگین نمایش داده شود
+          // ✅ User is logged out (either naturally or due to an error)
+          // The LoginView itself uses BlocListener to show errors if needed.
           return const LoginView();
         } else {
-          // در وضعیت Loading، یک Spinner نمایش داده می‌شود
+          // This covers AuthStateLoading or any uninitialized state
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
