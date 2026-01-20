@@ -39,7 +39,6 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
-        // استفاده از Overlay جدید به جای دیالوگ قدیمی
         if (state.isLoading) {
           LoadingScreen().show(
             context: context,
@@ -64,26 +63,39 @@ class _RegisterViewState extends State<RegisterView> {
       child: Scaffold(
         backgroundColor: const Color(0xFF121212),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          // دستور شماره 17: اعمال Padding 16.0 (با حفظ ساختار قبلی شما)
+          padding: const EdgeInsets.all(16.0),
           child: Column(
+            // دستور شماره 19: تنظیم چینش المان‌ها به سمت چپ (Start)
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 80),
-              const Icon(
-                Icons.person_add_outlined,
-                size: 80,
-                color: Colors.blueAccent,
+              const Center(
+                child: Icon(
+                  Icons.person_add_outlined,
+                  size: 80,
+                  color: Colors.blueAccent,
+                ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Create Account',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              const Center(
+                child: Text(
+                  'Create Account',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 40),
-              _buildTextField(_email, 'Email Address', Icons.email_outlined),
+              // دستور شماره 20: فعال کردن autofocus روی اولین فیلد (ایمیل)
+              _buildTextField(
+                _email,
+                'Email Address',
+                Icons.email_outlined,
+                autofocus: true,
+              ),
               const SizedBox(height: 15),
               _buildTextField(
                 _password,
@@ -129,13 +141,15 @@ class _RegisterViewState extends State<RegisterView> {
                 ),
               ),
               const SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  context.read<AuthBloc>().add(const AuthEventLogOut());
-                },
-                child: const Text(
-                  'Already have an account? Login',
-                  style: TextStyle(color: Colors.blueAccent),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    context.read<AuthBloc>().add(const AuthEventLogOut());
+                  },
+                  child: const Text(
+                    'Already have an account? Login',
+                    style: TextStyle(color: Colors.blueAccent),
+                  ),
                 ),
               ),
             ],
@@ -150,10 +164,12 @@ class _RegisterViewState extends State<RegisterView> {
     String hint,
     IconData icon, {
     bool isPassword = false,
+    bool autofocus = false, // اضافه شدن پارامتر برای دستور 20
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
+      autofocus: autofocus, // اعمال دستور 20
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,

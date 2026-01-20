@@ -10,22 +10,20 @@ class FirebaseAuthProvider implements AuthProvider {
   @override
   Future<void> initialize() async {
     try {
-      // بررسی دقیق برای جلوگیری از کرش و صفحه سفید
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
       }
     } catch (e) {
-      // اگر قبلاً مقداردهی شده باشد، از خطا عبور می‌کند تا برنامه متوقف نشود
+      // Error handling ignored as per current logic
     }
   }
 
   @override
   AuthUser? get currentUser {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null)
-      return AuthUser.fromFirebase(user); // ✅ از FirebaseUser UID می‌گیرد
+    if (user != null) return AuthUser.fromFirebase(user);
     return null;
   }
 
@@ -84,5 +82,18 @@ class FirebaseAuthProvider implements AuthProvider {
   Future<void> sendEmailVerification() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) await user.sendEmailVerification();
+  }
+
+  // دستور شماره 7: پیاده‌سازی ارسال ایمیل بازیابی رمز عبور
+  @override
+  Future<void> sendPasswordReset({required String toEmail}) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: toEmail);
+    } on FirebaseAuthException catch (e) {
+      // Handle based on your existing exception logic if needed later
+      throw GenericAuthException();
+    } catch (_) {
+      throw GenericAuthException();
+    }
   }
 }

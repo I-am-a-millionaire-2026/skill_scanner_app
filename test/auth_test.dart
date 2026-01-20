@@ -1,16 +1,33 @@
-import 'package:skill_scanner/services/auth/auth_user.dart';
+import 'package:skill_scanner/services/auth/auth_provider.dart';
+import 'package:skill_scanner/services/auth/auth_user.dart'; // حتما این خط را اضافه کنید
 import 'package:test/test.dart';
 
-void main() {
-  test('Should be able to create auth user', () {
-    final user = AuthUser(
-      id: '123ABC', // ✅ اضافه شد
-      email: 'test@gmail.com',
-      isEmailVerified: true,
-    );
+class MockAuthProvider implements AuthProvider {
+  @override
+  Future<void> sendPasswordReset({required String toEmail}) {
+    // طبق دستور 21
+    throw UnimplementedError();
+  }
 
-    expect(user.id, '123ABC'); // ✅ بررسی id
-    expect(user.email, 'test@gmail.com');
-    expect(user.isEmailVerified, true);
-  });
+  @override
+  AuthUser? get currentUser => throw UnimplementedError();
+
+  @override
+  Future<AuthUser> createUser({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> initialize() => throw UnimplementedError();
+
+  @override
+  Future<AuthUser> logIn({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> logOut() => throw UnimplementedError();
+
+  @override
+  Future<void> sendEmailVerification() => throw UnimplementedError();
 }

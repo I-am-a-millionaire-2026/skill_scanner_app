@@ -16,4 +16,7 @@ abstract class AuthProvider {
   Future<void> logOut();
 
   Future<void> sendEmailVerification();
+
+  // دستور شماره 6: اضافه کردن امضای تابع برای بازیابی رمز عبور
+  Future<void> sendPasswordReset({required String toEmail});
 }

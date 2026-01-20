@@ -34,6 +34,21 @@ class AuthStateRegistering extends AuthState {
   List<Object?> get props => [exception, isLoading];
 }
 
+// دستور شماره 5 جدید: ایجاد State جدید برای فراموشی رمز عبور
+class AuthStateForgotPassword extends AuthState {
+  final Exception? exception;
+  final bool hasSentEmail;
+
+  const AuthStateForgotPassword({
+    required this.exception,
+    required this.hasSentEmail,
+    required super.isLoading,
+  });
+
+  @override
+  List<Object?> get props => [exception, hasSentEmail, isLoading];
+}
+
 // دستور 9: مدیریت لودینگ در وضعیت ورود
 class AuthStateLoggedIn extends AuthState {
   final AuthUser user;

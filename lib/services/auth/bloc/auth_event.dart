@@ -32,3 +32,9 @@ class AuthEventSendEmailVerification extends AuthEvent {
 class AuthEventLogOut extends AuthEvent {
   const AuthEventLogOut();
 }
+
+// اصلاح شده: اضافه کردن فیلد email برای رفع ارور در AuthBloc
+class AuthEventForgotPassword extends AuthEvent {
+  final String? email;
+  const AuthEventForgotPassword({this.email});
+}

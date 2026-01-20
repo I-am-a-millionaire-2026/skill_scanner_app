@@ -9,7 +9,7 @@ class AuthService {
   AuthUser? get currentUser {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
-    return AuthUser.fromFirebase(user); // ✅ UID دارد
+    return AuthUser.fromFirebase(user);
   }
 
   Future<void> logIn({required String email, required String password}) async {
@@ -36,5 +36,10 @@ class AuthService {
   Future<void> sendEmailVerification() async {
     final user = FirebaseAuth.instance.currentUser;
     await user?.sendEmailVerification();
+  }
+
+  // دستور شماره 8: اضافه کردن قابلیت ارسال ایمیل بازیابی به سرویس
+  Future<void> sendPasswordReset({required String toEmail}) async {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: toEmail);
   }
 }

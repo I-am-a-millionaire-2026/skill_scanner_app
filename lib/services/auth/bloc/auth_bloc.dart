@@ -48,9 +48,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           loadingText: 'Please wait while I log you in',
         ),
       );
-      final email = event.email; // تعریف متغیر ایمیل از ایونت
-      final password =
-          event.password; // تعریف متغیر پسورد از ایونت برای رفع ارور
+      final email = event.email;
+      final password = event.password;
 
       try {
         final user = await provider.logIn(email: email, password: password);
@@ -84,9 +83,53 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
-    // [Should Register]
+    // دستور شماره 18: مدیریت Event ثبت نام در Bloc
     on<AuthEventShouldRegister>((event, emit) {
       emit(const AuthStateRegistering(exception: null, isLoading: false));
+    });
+
+    // دستور شماره 9: مدیریت Event فراموشی رمز عبور در Bloc
+    on<AuthEventForgotPassword>((event, emit) async {
+      emit(
+        const AuthStateForgotPassword(
+          exception: null,
+          hasSentEmail: false,
+          isLoading: false,
+        ),
+      );
+
+      final email = event.email;
+      if (email == null) {
+        return; // کاربر فقط به صفحه فراموشی رمز رفته است
+      }
+
+      // شروع فرآیند ارسال ایمیل و نمایش لودینگ
+      emit(
+        const AuthStateForgotPassword(
+          exception: null,
+          hasSentEmail: false,
+          isLoading: true,
+        ),
+      );
+
+      bool didSendEmail;
+      Exception? exception;
+      try {
+        await provider.sendPasswordReset(toEmail: email);
+        didSendEmail = true;
+        exception = null;
+      } on Exception catch (e) {
+        didSendEmail = false;
+        exception = e;
+      }
+
+      emit(
+        AuthStateForgotPassword(
+          exception: exception,
+          hasSentEmail: didSendEmail,
+          isLoading: false,
+        ),
+      );
     });
   }
 }
