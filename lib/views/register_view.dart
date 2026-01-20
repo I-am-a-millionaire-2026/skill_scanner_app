@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skill_scanner/helpers/loading/loading_screen.dart';
 import 'package:skill_scanner/services/auth/auth_exceptions.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
 import 'package:skill_scanner/utilities/dialogs/error_dialog.dart';
-import 'package:skill_scanner/utilities/dialogs/loading_dialog.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -18,7 +18,6 @@ class _RegisterViewState extends State<RegisterView> {
   late final TextEditingController _email;
   late final TextEditingController _password;
   late final TextEditingController _confirmPassword;
-  CloseDialog? _closeDialogHandle;
 
   @override
   void initState() {
@@ -40,18 +39,16 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
-        // مدیریت لودینگ
+        // استفاده از Overlay جدید به جای دیالوگ قدیمی
         if (state.isLoading) {
-          _closeDialogHandle = showLoadingDialog(
+          LoadingScreen().show(
             context: context,
             text: state.loadingText ?? 'Please wait...',
           );
         } else {
-          _closeDialogHandle?.call();
-          _closeDialogHandle = null;
+          LoadingScreen().hide();
         }
 
-        // مدیریت خطاها در ثبت‌نام
         if (state is AuthStateRegistering) {
           if (state.exception is WeakPasswordAuthException) {
             await showErrorDialog(context, 'Weak password');
@@ -121,7 +118,6 @@ class _RegisterViewState extends State<RegisterView> {
                       await showErrorDialog(context, 'Passwords do not match!');
                       return;
                     }
-                    // ثبت‌نام از طریق ارسال ایونت به Bloc
                     context.read<AuthBloc>().add(
                       AuthEventRegister(email, password),
                     );
@@ -135,7 +131,6 @@ class _RegisterViewState extends State<RegisterView> {
               const SizedBox(height: 20),
               TextButton(
                 onPressed: () {
-                  // دستور ۲۴: بازگشت به لاگین با ارسال ایونت LogOut به بلوک
                   context.read<AuthBloc>().add(const AuthEventLogOut());
                 },
                 child: const Text(

@@ -5,7 +5,6 @@ import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
 import 'package:skill_scanner/utilities/dialogs/error_dialog.dart';
-import 'package:skill_scanner/utilities/dialogs/loading_dialog.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -17,7 +16,6 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   late final TextEditingController _email;
   late final TextEditingController _password;
-  CloseDialog? _closeDialogHandle;
 
   @override
   void initState() {
@@ -37,15 +35,8 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
-        if (state.isLoading) {
-          _closeDialogHandle = showLoadingDialog(
-            context: context,
-            text: state.loadingText ?? 'Please wait...',
-          );
-        } else {
-          _closeDialogHandle?.call();
-          _closeDialogHandle = null;
-        }
+        // دستور 15: حذف کدهای مدیریت isLoading از این بخش
+        // مدیریت لودینگ اکنون توسط Overlay و از سطح بالاتر انجام می‌شود
 
         if (state is AuthStateLoggedOut) {
           if (state.exception is UserNotFoundAuthException) {
@@ -91,8 +82,6 @@ class _LoginViewState extends State<LoginView> {
               ),
               TextButton(
                 onPressed: () {
-                  // دستور ۳۷: فقط ایونت تغییر وضعیت را می‌فرستیم
-                  // BlocBuilder در main.dart به صورت خودکار RegisterView را نشان می‌دهد
                   context.read<AuthBloc>().add(const AuthEventShouldRegister());
                 },
                 child: const Text('Not registered yet? Register here!'),

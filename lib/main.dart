@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/constants/routes.dart';
+import 'package:skill_scanner/helpers/loading/loading_screen.dart'; // اضافه شده برای مدیریت لودینگ
 import 'package:skill_scanner/services/auth/firebase_auth_provider.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
@@ -29,7 +30,6 @@ void main() async {
   }
 
   runApp(
-    // تزریق AuthBloc به کل برنامه
     BlocProvider<AuthBloc>(
       create: (context) => AuthBloc(FirebaseAuthProvider()),
       child: const MyApp(),
@@ -46,9 +46,7 @@ class MyApp extends StatelessWidget {
       title: 'Skill Scanner',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      // نقطه شروع برنامه HomePage است
       home: const HomePage(),
-      // دستور ۳۶: حذف مسیرهای اضافی و نگه داشتن مسیر نوت
       routes: {
         createOrUpdateNoteRoute: (context) => const CreateUpdateNoteView(),
       },
@@ -61,25 +59,30 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // مقداردهی اولیه احراز هویت در شروع برنامه
     context.read<AuthBloc>().add(const AuthEventInitialize());
 
-    return BlocBuilder<AuthBloc, AuthState>(
+    // دستور ۱۶ و ۱۷: استفاده از BlocConsumer برای مدیریت همزمان UI و Side-effects
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state.isLoading) {
+          LoadingScreen().show(
+            context: context,
+            text: state.loadingText ?? 'Please wait...',
+          );
+        } else {
+          LoadingScreen().hide();
+        }
+      },
       builder: (context, state) {
         if (state is AuthStateLoggedIn) {
-          // کاربر لاگین است -> نمایش یور نوت
           return const NotesView();
         } else if (state is AuthStateNeedsVerification) {
-          // نیاز به تایید ایمیل
           return const VerifyEmailView();
         } else if (state is AuthStateLoggedOut) {
-          // دستور ۳۴: کاربر خارج شده یا خطایی رخ داده -> نمایش صفحه لاگین
           return const LoginView();
         } else if (state is AuthStateRegistering) {
-          // دستور ۳۷: نمایش صفحه ثبت‌نام بر اساس وضعیت بلوک
           return const RegisterView();
         } else {
-          // وضعیت در حال بارگذاری اولیه
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

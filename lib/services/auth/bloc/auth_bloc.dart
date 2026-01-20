@@ -12,7 +12,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(state);
     });
 
-    // [Register]
+    // [Register] - دستور 14: اضافه کردن isLoading به وضعیت ثبت‌نام
     on<AuthEventRegister>((event, emit) async {
       final email = event.email;
       final password = event.password;
@@ -26,12 +26,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
-    // دستور ۳۰: Handle AuthEventInitialize
+    // [Initialize] - دستور 12: آپدیت وضعیت اولیه با isLoading
     on<AuthEventInitialize>((event, emit) async {
       await provider.initialize();
       final user = provider.currentUser;
       if (user == null) {
-        // دستور ۳۰: اگر کاربر لاگین نیست، وضعیت LoggedOut صادر شود
         emit(const AuthStateLoggedOut(exception: null, isLoading: false));
       } else if (!user.isEmailVerified) {
         emit(const AuthStateNeedsVerification(isLoading: false));
@@ -40,46 +39,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
-    // دستور ۳۱ تا ۳۴: مدیریت دقیق Log In
+    // [Log In] - رفع خطای Undefined name 'password'
     on<AuthEventLogIn>((event, emit) async {
-      // دستور ۳۱: نمایش لودینگ با ارسال وضعیت LoggedOut و isLoading: true
       emit(
         const AuthStateLoggedOut(
           exception: null,
           isLoading: true,
-          loadingText: 'Logging in...',
+          loadingText: 'Please wait while I log you in',
         ),
       );
+      final email = event.email; // تعریف متغیر ایمیل از ایونت
+      final password =
+          event.password; // تعریف متغیر پسورد از ایونت برای رفع ارور
+
       try {
-        final user = await provider.logIn(
-          email: event.email,
-          password: event.password,
-        );
+        final user = await provider.logIn(email: email, password: password);
 
         if (!user.isEmailVerified) {
-          // دستور ۳۲: ابتدا لودینگ را با ارسال LoggedOut(isLoading: false) متوقف می‌کنیم
           emit(const AuthStateLoggedOut(exception: null, isLoading: false));
-          // سپس به وضعیت نیاز به تایید می‌رویم
           emit(const AuthStateNeedsVerification(isLoading: false));
         } else {
-          // دستور ۳۳: اگر ایمیل تایید شده، ابتدا لودینگ را قطع می‌کنیم
           emit(const AuthStateLoggedOut(exception: null, isLoading: false));
-          // سپس وضعیت نهایی LoggedIn را صادر می‌کنیم تا نوت‌ها لود شوند
           emit(AuthStateLoggedIn(user: user, isLoading: false));
         }
       } catch (e) {
-        // دستور ۳۴: مدیریت صحیح خطاها در وضعیت LoggedOut
         emit(AuthStateLoggedOut(exception: e as Exception, isLoading: false));
       }
     });
 
-    // [Log Out] با رعایت ساختار دستور ۳۴
+    // [Log Out] - دستور 13: قرار دادن isLoading: true در هنگام لودینگ خروج
     on<AuthEventLogOut>((event, emit) async {
       emit(
         const AuthStateLoggedOut(
           exception: null,
           isLoading: true,
-          loadingText: 'Logging out...',
+          loadingText: 'Please wait while I log you out',
         ),
       );
       try {
