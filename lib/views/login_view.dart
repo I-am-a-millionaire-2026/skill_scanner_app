@@ -37,7 +37,6 @@ class _LoginViewState extends State<LoginView> {
       listener: (context, state) async {
         if (state is AuthStateLoggedOut) {
           if (state.exception is UserNotFoundAuthException) {
-            // دستور شماره 13: پیام بهتر برای کاربر ناموجود
             await showErrorDialog(context, 'User not found, please register');
           } else if (state.exception is WrongPasswordAuthException) {
             await showErrorDialog(context, 'Wrong credentials');
@@ -48,53 +47,64 @@ class _LoginViewState extends State<LoginView> {
       },
       child: Scaffold(
         appBar: AppBar(title: const Text('Login')),
-        // دستور شماره 14: اضافه کردن Padding 16.0 به کل محتوا
         body: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // دستور شماره 15: افزودن متن عنوان در بالای ستون
-              const Text('Login'),
-              TextField(
-                controller: _email,
-                enableSuggestions: false,
-                autocorrect: false,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your email here',
+          child: SingleChildScrollView(
+            // حل مشکل Overflow و نوار زرد/مشکی
+            child: Column(
+              children: [
+                const Text(
+                  'Login',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-              ),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your password here',
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _email,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter your email here',
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final email = _email.text.trim();
-                  final password = _password.text;
-                  context.read<AuthBloc>().add(AuthEventLogIn(email, password));
-                },
-                child: const Text('Login'),
-              ),
-              // دستور شماره 16: افزودن دکمه فراموشی رمز عبور
-              TextButton(
-                onPressed: () {
-                  context.read<AuthBloc>().add(const AuthEventForgotPassword());
-                },
-                child: const Text('I forgot my password'),
-              ),
-              TextButton(
-                onPressed: () {
-                  context.read<AuthBloc>().add(const AuthEventShouldRegister());
-                },
-                child: const Text('Not registered yet? Register here!'),
-              ),
-            ],
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter your password here',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () async {
+                    final email = _email.text.trim();
+                    final password = _password.text;
+                    context.read<AuthBloc>().add(
+                      AuthEventLogIn(email, password),
+                    );
+                  },
+                  child: const Text('Login'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    context.read<AuthBloc>().add(
+                      const AuthEventForgotPassword(),
+                    );
+                  },
+                  child: const Text('I forgot my password'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    context.read<AuthBloc>().add(
+                      const AuthEventShouldRegister(),
+                    );
+                  },
+                  child: const Text('Not registered yet? Register here!'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

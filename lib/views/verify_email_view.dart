@@ -17,31 +17,34 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       appBar: AppBar(title: const Text('Verify Email')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Please check your email to verify your account.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                // دستور ۲۵: ارسال ایونت ارسال مجدد ایمیل به Bloc
-                context.read<AuthBloc>().add(
-                  const AuthEventSendEmailVerification(),
-                );
-              },
-              child: const Text('Resend verification email'),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                // دستور ۲۶: ارسال ایونت LogOut برای شروع مجدد فرآیند
-                context.read<AuthBloc>().add(const AuthEventLogOut());
-              },
-              child: const Text('Restart'),
-            ),
-          ],
+        child: SingleChildScrollView(
+          // اضافه شد برای جلوگیری از Overflow احتمالی
+          child: Column(
+            children: [
+              const Text(
+                'Please check your email to verify your account.',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  context.read<AuthBloc>().add(
+                    const AuthEventSendEmailVerification(),
+                  );
+                },
+                child: const Text('Resend verification email'),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  // اصلاح منطقی: با زدن Restart کاربر به صفحه لاگین برمی‌گردد
+                  // تا بعد از تایید ایمیل، دوباره وارد شود
+                  context.read<AuthBloc>().add(const AuthEventLogOut());
+                },
+                child: const Text('Restart'),
+              ),
+            ],
+          ),
         ),
       ),
     );
