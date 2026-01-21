@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
-import 'package:skill_scanner/utilities/dialogs/logout_dialog.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -13,12 +12,10 @@ class ProfileView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Skill Scanner'),
         actions: [
-          // دکمه خروج از حساب کاربری - مطابق با مرحله ۱ دستورات جدید
           IconButton(
             onPressed: () async {
               final shouldLogout = await showLogOutDialog(context);
               if (shouldLogout) {
-                // استفاده از Bloc به جای FirebaseAuth.instance.signOut مستقیم
                 if (context.mounted) {
                   context.read<AuthBloc>().add(const AuthEventLogOut());
                 }
@@ -31,7 +28,6 @@ class ProfileView extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // بخش هدر پروفایل (حفظ شده از کدهای قبلی شما)
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: CircleAvatar(
@@ -44,8 +40,6 @@ class ProfileView extends StatelessWidget {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-
-            // لیست فعالیت‌ها (حفظ شده از کدهای قبلی شما)
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -60,6 +54,14 @@ class ProfileView extends StatelessWidget {
                 );
               },
             ),
+            // ✅ دستور شماره ۵: اضافه کردن Attribution جهت رعایت کپی‌رایت
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'App Icon by Filo from www.stockio.com',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
           ],
         ),
       ),
@@ -67,7 +69,7 @@ class ProfileView extends StatelessWidget {
   }
 }
 
-// تابع نمایش دیالوگ تایید خروج (حفظ شده از کدهای قبلی شما)
+// تابع دیالوگ خروج (بدون تغییر)
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
