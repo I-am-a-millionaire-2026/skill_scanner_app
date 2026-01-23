@@ -7,16 +7,39 @@ import 'package:skill_scanner/services/auth/firebase_auth_provider.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/auth/bloc/auth_state.dart';
+import 'package:skill_scanner/services/cloud/cloud_note.dart'; // ایمپورت کلاس MasterCard
 import 'package:skill_scanner/views/login_view.dart';
 import 'package:skill_scanner/views/register_view.dart';
 import 'package:skill_scanner/views/verify_email_view.dart';
 import 'package:skill_scanner/views/notes/notes_view.dart';
 import 'package:skill_scanner/views/notes/create_update_note_view.dart';
-import 'package:skill_scanner/views/forgot_password_view.dart'; // اضافه شده برای دستور 12
+import 'package:skill_scanner/views/forgot_password_view.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // --- دستور شماره 9: Mock Data Test ---
+  // ایجاد یک شیء نمونه برای اطمینان از سلامت مدل جدید
+  final testCard = MasterCard(
+    documentId: 'test-id-123',
+    ownerUserId: 'user-001',
+    text: 'Learn how to master AI prompting',
+    tools: ['ChatGPT', 'Gemini'],
+    steps: ['Open App', 'Type Prompt', 'Optimize'],
+    estimatedTime: '15 min',
+    level: 'Advanced',
+    createdAt: DateTime.now(),
+  );
+
+  // پرینت در کنسول برای تایید مدل (اطمینان از سلامت قبل از دیتابیس)
+  debugPrint('--- Model Test Results ---');
+  debugPrint('Title/Text: ${testCard.text}');
+  debugPrint('Tools List: ${testCard.tools}');
+  debugPrint('Complexity Level: ${testCard.level}');
+  debugPrint('-------------------------');
+  // --- پایان دستور شماره 9 ---
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -78,9 +101,7 @@ class HomePage extends StatelessWidget {
           return const VerifyEmailView();
         } else if (state is AuthStateLoggedOut) {
           return const LoginView();
-        }
-        // دستور شماره 12: نمایش صفحه فراموشی رمز عبور
-        else if (state is AuthStateForgotPassword) {
+        } else if (state is AuthStateForgotPassword) {
           return const ForgotPasswordView();
         } else if (state is AuthStateRegistering) {
           return const RegisterView();

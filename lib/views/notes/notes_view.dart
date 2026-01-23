@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // اضافه شده
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skill_scanner/constants/routes.dart';
 import 'package:skill_scanner/services/auth/auth_service.dart';
-import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart'; // اضافه شده
-import 'package:skill_scanner/services/auth/bloc/auth_event.dart'; // اضافه شده
+import 'package:skill_scanner/services/auth/bloc/auth_bloc.dart';
+import 'package:skill_scanner/services/auth/bloc/auth_event.dart';
 import 'package:skill_scanner/services/cloud/cloud_note.dart';
 import 'package:skill_scanner/services/cloud/firebase_cloud_storage.dart';
 import 'package:skill_scanner/utilities/dialogs/logout_dialog.dart';
@@ -18,7 +18,6 @@ class NotesView extends StatefulWidget {
 
 class _NotesViewState extends State<NotesView> {
   late final FirebaseCloudStorage _notesService;
-
   String get userId => AuthService.firebase().currentUser!.id;
 
   @override
@@ -31,7 +30,7 @@ class _NotesViewState extends State<NotesView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Notes'),
+        title: const Text('MasterMe Feed'),
         actions: [
           IconButton(
             onPressed: () {
@@ -43,10 +42,8 @@ class _NotesViewState extends State<NotesView> {
             onPressed: () async {
               final shouldLogout = await showLogOutDialog(context);
               if (shouldLogout) {
-                // 1️⃣ و 2️⃣ ارسال رویداد خروج به AuthBloc (دستور 11)
                 if (!mounted) return;
                 context.read<AuthBloc>().add(const AuthEventLogOut());
-                // جابجایی به صفحه لاگین توسط BlocBuilder در فایل main مدیریت می‌شود
               }
             },
             icon: const Icon(Icons.logout),
@@ -60,7 +57,7 @@ class _NotesViewState extends State<NotesView> {
             case ConnectionState.waiting:
             case ConnectionState.active:
               if (snapshot.hasData) {
-                final allNotes = snapshot.data as Iterable<CloudNote>;
+                final allNotes = snapshot.data as Iterable<MasterCard>;
                 return NotesListView(
                   notes: allNotes,
                   onDeleteNote: (note) async {

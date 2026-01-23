@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:skill_scanner/services/cloud/cloud_note.dart';
+import 'package:skill_scanner/services/cloud/cloud_note.dart'; // کلاس MasterCard در اینجا است
 import 'package:share_plus/share_plus.dart';
-import 'package:skill_scanner/utilities/dialogs/cannot_share_empty_note_dialog.dart'; // ✅ اضافه شد
+import 'package:skill_scanner/utilities/dialogs/cannot_share_empty_note_dialog.dart';
 
-typedef NoteCallback = void Function(CloudNote note);
+typedef NoteCallback = void Function(MasterCard note);
 
 class NotesListView extends StatelessWidget {
-  final Iterable<CloudNote> notes;
+  final Iterable<MasterCard> notes;
   final NoteCallback onDeleteNote;
   final NoteCallback onTap;
 
@@ -42,7 +42,6 @@ class NotesListView extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.share),
                 onPressed: () async {
-                  // ✅ بررسی نوت خالی در لیست
                   if (note.text.isEmpty) {
                     await showCannotShareEmptyNoteDialog(context);
                   } else {
